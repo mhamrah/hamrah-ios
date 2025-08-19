@@ -11,6 +11,7 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
+    @EnvironmentObject var authManager: NativeAuthManager
 
     var body: some View {
         NavigationSplitView {
@@ -38,6 +39,11 @@ struct ContentView: View {
                         Label("Add Item", systemImage: "plus")
                     }
                 }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Logout") {
+                        authManager.logout()
+                    }
+                }
             }
         } detail: {
             Text("Select an item")
@@ -63,4 +69,5 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .modelContainer(for: Item.self, inMemory: true)
+        .environmentObject(NativeAuthManager())
 }

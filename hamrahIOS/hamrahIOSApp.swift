@@ -25,7 +25,11 @@ struct hamrahIOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .onOpenURL { url in
+                    // Handle deep link URLs (OAuth callback)
+                    print("Received URL: \(url)")
+                }
         }
         .modelContainer(sharedModelContainer)
     }
