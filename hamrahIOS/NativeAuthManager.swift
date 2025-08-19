@@ -18,7 +18,7 @@ class NativeAuthManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private let baseURL = "https://localhost:5173" // Use local dev server
+    private let baseURL = "https://hamrah.app" // Use production server
     private var accessToken: String?
     
     struct HamrahUser: Codable {
@@ -169,6 +169,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
         let body = ["email": email]
         request.httpBody = try JSONEncoder().encode(body)
@@ -200,6 +201,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
         let body = [
             "email": email,
@@ -238,6 +240,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
         var body = [
             "provider": provider,

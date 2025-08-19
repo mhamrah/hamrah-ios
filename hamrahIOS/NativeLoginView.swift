@@ -9,7 +9,7 @@ import SwiftUI
 import AuthenticationServices
 
 struct NativeLoginView: View {
-    @StateObject private var authManager = NativeAuthManager()
+    @EnvironmentObject var authManager: NativeAuthManager
     @State private var email = ""
     @State private var showingPasskeyLogin = false
     @State private var showingEmailInput = false
@@ -196,4 +196,5 @@ struct PasskeyEmailInputView: View {
 
 #Preview {
     NativeLoginView()
+        .environmentObject(NativeAuthManager())
 }
