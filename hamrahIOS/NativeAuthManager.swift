@@ -99,6 +99,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         }
         
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientId)
+        print("✅ Google Sign-In configured with client ID from GoogleService-Info.plist")
     }
     
     func signInWithGoogle() async {
