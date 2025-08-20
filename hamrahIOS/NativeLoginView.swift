@@ -39,16 +39,24 @@ struct NativeLoginView: View {
             VStack(spacing: 16) {
                 
                 // Apple Sign-In
-                SignInWithAppleButton(.signIn) { request in
-                    // Apple Sign-In handled by button automatically
-                } onCompletion: { result in
+                Button(action: {
                     Task {
                         await authManager.signInWithApple()
                     }
+                }) {
+                    HStack {
+                        Image(systemName: "applelogo")
+                            .foregroundColor(.white)
+                        Text("Sign in with Apple")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(Color.black)
+                    .cornerRadius(8)
                 }
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 50)
-                .cornerRadius(8)
+                .disabled(authManager.isLoading)
                 
                 // Google Sign-In
                 Button(action: {
