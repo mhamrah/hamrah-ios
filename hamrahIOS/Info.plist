@@ -29,5 +29,7 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>107139115848-jvf449cojr174ocan4vpanddh8i48oko.apps.googleusercontent.com</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use Face ID to quickly and securely access your account</string>
 </dict>
 </plist>

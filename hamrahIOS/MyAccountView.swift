@@ -10,12 +10,14 @@ import AuthenticationServices
 
 struct MyAccountView: View {
     @EnvironmentObject var authManager: NativeAuthManager
+    @EnvironmentObject var biometricManager: BiometricAuthManager
     @State private var passkeys: [PasskeyCredential] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showConfirmDialog = false
     @State private var credentialToDelete: PasskeyCredential?
     @State private var showAddPasskey = false
+    @State private var showBiometricSettings = false
     
     var body: some View {
         NavigationView {
@@ -23,6 +25,9 @@ struct MyAccountView: View {
                 VStack(spacing: 20) {
                     // User Information Section
                     userInfoSection
+                    
+                    // Biometric Security Section
+                    biometricSection
                     
                     // Passkeys Section
                     passkeysSection
@@ -78,6 +83,72 @@ struct MyAccountView: View {
             .background(Color(.systemBackground))
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+        }
+    }
+    
+    private var biometricSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Security")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 0) {
+                Button(action: {
+                    showBiometricSettings = true
+                }) {
+                    HStack {
+                        Image(systemName: biometricIconName)
+                            .foregroundColor(.blue)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(biometricManager.biometricTypeString)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                            
+                            Text(biometricStatusText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+        }
+    }
+    
+    private var biometricIconName: String {
+        switch biometricManager.biometricType {
+        case .faceID:
+            return "faceid"
+        case .touchID:
+            return "touchid"
+        case .opticID:
+            return "opticid"
+        case .none:
+            return "lock.slash"
+        @unknown default:
+            return "questionmark"
+        }
+    }
+    
+    private var biometricStatusText: String {
+        if !biometricManager.isAvailable {
+            return "Not available on this device"
+        } else if biometricManager.isBiometricEnabled {
+            return "Enabled"
+        } else {
+            return "Tap to set up"
         }
     }
     
@@ -143,6 +214,15 @@ struct MyAccountView: View {
                 loadPasskeys()
             })
             .environmentObject(authManager)
+        }
+        .sheet(isPresented: $showBiometricSettings) {
+            NavigationView {
+                BiometricSettingsView()
+                    .environmentObject(biometricManager)
+                    .navigationBarItems(trailing: Button("Done") {
+                        showBiometricSettings = false
+                    })
+            }
         }
     }
     
@@ -371,4 +451,5 @@ struct APIResponse: Codable {
 #Preview {
     MyAccountView()
         .environmentObject(NativeAuthManager())
+        .environmentObject(BiometricAuthManager())
 }

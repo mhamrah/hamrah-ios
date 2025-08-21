@@ -12,6 +12,8 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
     @EnvironmentObject var authManager: NativeAuthManager
+    @EnvironmentObject var biometricManager: BiometricAuthManager
+    @State private var showBiometricSetupPrompt = false
 
     var body: some View {
         NavigationSplitView {
@@ -40,7 +42,7 @@ struct ContentView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink(destination: MyAccountView().environmentObject(authManager)) {
+                    NavigationLink(destination: MyAccountView().environmentObject(authManager).environmentObject(biometricManager)) {
                         Image(systemName: "person.circle")
                             .font(.title3)
                     }
@@ -48,6 +50,38 @@ struct ContentView: View {
             }
         } detail: {
             Text("Select an item")
+        }
+        .onAppear {
+            checkBiometricSetupPrompt()
+        }
+        .sheet(isPresented: $showBiometricSetupPrompt) {
+            BiometricSetupPromptView(
+                onSetup: {
+                    showBiometricSetupPrompt = false
+                },
+                onSkip: {
+                    showBiometricSetupPrompt = false
+                    // Mark that user was prompted so we don't ask again
+                    UserDefaults.standard.set(true, forKey: "hamrah_biometric_setup_prompted")
+                }
+            )
+            .environmentObject(biometricManager)
+        }
+    }
+    
+    private func checkBiometricSetupPrompt() {
+        // Only show prompt if:
+        // 1. Biometric auth is available
+        // 2. User hasn't enabled it yet
+        // 3. User hasn't been prompted before
+        let hasBeenPrompted = UserDefaults.standard.bool(forKey: "hamrah_biometric_setup_prompted")
+        
+        if biometricManager.isAvailable && 
+           !biometricManager.isBiometricEnabled && 
+           !hasBeenPrompted {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                showBiometricSetupPrompt = true
+            }
         }
     }
 
@@ -71,4 +105,5 @@ struct ContentView: View {
     ContentView()
         .modelContainer(for: Item.self, inMemory: true)
         .environmentObject(NativeAuthManager())
+        .environmentObject(BiometricAuthManager())
 }
