@@ -33,7 +33,7 @@ Add to your Xcode project:
 3. Enable "Google Sign-In API"
 4. Go to "Credentials" > "Create Credentials" > "OAuth client ID"
 5. Choose "iOS" application type
-6. Add your bundle identifier: `com.hamrah.hamrahIOS`
+6. Add your bundle identifier: `app.hamrah.ios`
 7. Download the `GoogleService-Info.plist` file
 8. Add `GoogleService-Info.plist` to your Xcode project root
 
