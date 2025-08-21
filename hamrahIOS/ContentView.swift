@@ -40,8 +40,9 @@ struct ContentView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Logout") {
-                        authManager.logout()
+                    NavigationLink(destination: MyAccountView().environmentObject(authManager)) {
+                        Image(systemName: "person.circle")
+                            .font(.title3)
                     }
                 }
             }

@@ -18,8 +18,8 @@ class NativeAuthManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private let baseURL = "https://hamrah.app" // Use production server
-    private var accessToken: String?
+    let baseURL = "https://hamrah.app" // Use production server
+    var accessToken: String?
     
     struct HamrahUser: Codable {
         let id: String
