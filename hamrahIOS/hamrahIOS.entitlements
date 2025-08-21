@@ -9,6 +9,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>webcredentials:hamrah.app</string>
+		<string>applinks:hamrah.app</string>
 	</array>
 </dict>
 </plist>
