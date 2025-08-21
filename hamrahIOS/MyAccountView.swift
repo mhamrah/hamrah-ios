@@ -171,7 +171,10 @@ struct MyAccountView: View {
     }
     
     private func loadPasskeys() {
-        guard let accessToken = authManager.accessToken else { return }
+        guard let accessToken = authManager.accessToken else { 
+            errorMessage = "Not authenticated. Please sign in again."
+            return 
+        }
         
         isLoading = true
         errorMessage = nil
@@ -220,12 +223,21 @@ struct MyAccountView: View {
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch passkeys"])
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
         }
         
+        // Always try to decode the response to get the error message
         let apiResponse = try JSONDecoder().decode(PasskeyListResponse.self, from: data)
+        
+        if httpResponse.statusCode == 401 {
+            throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            let errorMsg = apiResponse.error ?? "Failed to fetch passkeys (HTTP \(httpResponse.statusCode))"
+            throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+        }
         
         if apiResponse.success {
             return apiResponse.credentials

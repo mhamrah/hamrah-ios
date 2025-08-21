@@ -140,8 +140,29 @@ struct AddPasskeyView: View {
         let body = ["email": email]
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONDecoder().decode(WebAuthnBeginRegistrationResponse.self, from: data)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+        }
+        
+        // Always try to decode the response to get the error message
+        let apiResponse = try JSONDecoder().decode(WebAuthnBeginRegistrationResponse.self, from: data)
+        
+        if httpResponse.statusCode == 401 {
+            throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            let errorMsg = apiResponse.error ?? "Failed to begin registration (HTTP \(httpResponse.statusCode))"
+            throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+        }
+        
+        if !apiResponse.success {
+            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Registration failed"])
+        }
+        
+        return apiResponse
     }
     
     private func performPlatformRegistration(options: PublicKeyCredentialCreationOptions) async throws -> ASAuthorizationPlatformPublicKeyCredentialRegistration {
@@ -182,15 +203,24 @@ struct AddPasskeyView: View {
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Registration failed"])
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
         }
         
+        // Always try to decode the response to get the error message
         let apiResponse = try JSONDecoder().decode(APIResponse.self, from: data)
         
+        if httpResponse.statusCode == 401 {
+            throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            let errorMsg = apiResponse.error ?? "Registration failed (HTTP \(httpResponse.statusCode))"
+            throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+        }
+        
         if !apiResponse.success {
-            throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Registration failed"])
+            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Registration failed"])
         }
     }
 }
