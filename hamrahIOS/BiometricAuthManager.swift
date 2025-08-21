@@ -117,8 +117,10 @@ class BiometricAuthManager: ObservableObject {
             errorMessage = "Authentication was cancelled by the app"
         case .invalidDimensions:
             errorMessage = "Invalid authentication dimensions"
+#if os(watchOS)
         case .watchNotAvailable:
             errorMessage = "Apple Watch is not available for authentication"
+#endif
         case .biometryDisconnected:
             errorMessage = "Biometric sensor is disconnected"
         @unknown default:
