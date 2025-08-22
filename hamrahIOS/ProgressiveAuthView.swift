@@ -47,10 +47,15 @@ struct ProgressiveAuthView: View {
                 await progressiveAuth.startProgressiveAuth()
             }
         }
-        .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+        .onChange(of: authManager.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated && !progressiveAuth.isProgressiveAuthComplete {
                 Task {
                     await progressiveAuth.completeAuthentication()
+                }
+            } else if !isAuthenticated {
+                // User logged out, handle logout properly
+                Task {
+                    await progressiveAuth.handleLogout()
                 }
             }
         }

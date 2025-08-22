@@ -210,4 +210,19 @@ class ProgressiveAuthManager: ObservableObject {
     var shouldShowPasskeyPrompt: Bool {
         return currentState == .passkeyAvailable
     }
+    
+    // MARK: - Logout Handling
+    
+    func handleLogout() async {
+        await MainActor.run {
+            currentState = .checking
+            isLoading = false
+            errorMessage = nil
+        }
+        
+        print("🚪 User logged out, resetting progressive auth state")
+        
+        // Start progressive auth flow again to determine the appropriate login method
+        await startProgressiveAuth()
+    }
 }
