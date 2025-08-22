@@ -16,50 +16,50 @@
 			containerPortal = 3AC7BF6E2E4900DF00D7AA35 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 3AC7BF752E4900DF00D7AA35;
-			remoteInfo = hamrahIOS;
+			remoteInfo = hamrah-ios;
 		};
 		3AC7BF912E4900E000D7AA35 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3AC7BF6E2E4900DF00D7AA35 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 3AC7BF752E4900DF00D7AA35;
-			remoteInfo = hamrahIOS;
+			remoteInfo = hamrah-ios;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		3AC7BF762E4900DF00D7AA35 /* hamrahIOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = hamrahIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		3AC7BF862E4900E000D7AA35 /* hamrahIOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hamrahIOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		3AC7BF902E4900E000D7AA35 /* hamrahIOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hamrahIOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AC7BF762E4900DF00D7AA35 /* hamrah-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = hamrah-ios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AC7BF862E4900E000D7AA35 /* hamrah-ios-tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hamrah-ios-tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AC7BF902E4900E000D7AA35 /* hamrah-ios-uitests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hamrah-ios-uitests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		3AA713272E53DB5800628E18 /* Exceptions for "hamrahIOS" folder in "hamrahIOS" target */ = {
+		3AA713272E53DB5800628E18 /* Exceptions for "hamrah-ios" folder in "hamrah-ios" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 3AC7BF752E4900DF00D7AA35 /* hamrahIOS */;
+			target = 3AC7BF752E4900DF00D7AA35 /* hamrah-ios */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		3AC7BF782E4900DF00D7AA35 /* hamrahIOS */ = {
+		3AC7BF782E4900DF00D7AA35 /* hamrah-ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				3AA713272E53DB5800628E18 /* Exceptions for "hamrahIOS" folder in "hamrahIOS" target */,
+				3AA713272E53DB5800628E18 /* Exceptions for "hamrah-ios" folder in "hamrah-ios" target */,
 			);
-			path = hamrahIOS;
+			path = hamrah-ios;
 			sourceTree = "<group>";
 		};
-		3AC7BF892E4900E000D7AA35 /* hamrahIOSTests */ = {
+		3AC7BF892E4900E000D7AA35 /* hamrah-ios-tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = hamrahIOSTests;
+			path = hamrah-ios-tests;
 			sourceTree = "<group>";
 		};
-		3AC7BF932E4900E000D7AA35 /* hamrahIOSUITests */ = {
+		3AC7BF932E4900E000D7AA35 /* hamrah-ios-uitests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = hamrahIOSUITests;
+			path = hamrah-ios-uitests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -100,9 +100,9 @@
 		3AC7BF6D2E4900DF00D7AA35 = {
 			isa = PBXGroup;
 			children = (
-				3AC7BF782E4900DF00D7AA35 /* hamrahIOS */,
-				3AC7BF892E4900E000D7AA35 /* hamrahIOSTests */,
-				3AC7BF932E4900E000D7AA35 /* hamrahIOSUITests */,
+				3AC7BF782E4900DF00D7AA35 /* hamrah-ios */,
+				3AC7BF892E4900E000D7AA35 /* hamrah-ios-tests */,
+				3AC7BF932E4900E000D7AA35 /* hamrah-ios-uitests */,
 				3A13B8722E54C42C000DFCC2 /* Frameworks */,
 				3AC7BF772E4900DF00D7AA35 /* Products */,
 			);
@@ -111,9 +111,9 @@
 		3AC7BF772E4900DF00D7AA35 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3AC7BF762E4900DF00D7AA35 /* hamrahIOS.app */,
-				3AC7BF862E4900E000D7AA35 /* hamrahIOSTests.xctest */,
-				3AC7BF902E4900E000D7AA35 /* hamrahIOSUITests.xctest */,
+				3AC7BF762E4900DF00D7AA35 /* hamrah-ios.app */,
+				3AC7BF862E4900E000D7AA35 /* hamrah-ios-tests.xctest */,
+				3AC7BF902E4900E000D7AA35 /* hamrah-ios-uitests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,9 +121,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		3AC7BF752E4900DF00D7AA35 /* hamrahIOS */ = {
+		3AC7BF752E4900DF00D7AA35 /* hamrah-ios */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3AC7BF9A2E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrahIOS" */;
+			buildConfigurationList = 3AC7BF9A2E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrah-ios" */;
 			buildPhases = (
 				3AC7BF722E4900DF00D7AA35 /* Sources */,
 				3AC7BF732E4900DF00D7AA35 /* Frameworks */,
@@ -134,19 +134,19 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				3AC7BF782E4900DF00D7AA35 /* hamrahIOS */,
+				3AC7BF782E4900DF00D7AA35 /* hamrah-ios */,
 			);
-			name = hamrahIOS;
+			name = hamrah-ios;
 			packageProductDependencies = (
 				3A13B8732E54C42C000DFCC2 /* GoogleSignIn */,
 			);
-			productName = hamrahIOS;
-			productReference = 3AC7BF762E4900DF00D7AA35 /* hamrahIOS.app */;
+			productName = hamrah-ios;
+			productReference = 3AC7BF762E4900DF00D7AA35 /* hamrah-ios.app */;
 			productType = "com.apple.product-type.application";
 		};
-		3AC7BF852E4900E000D7AA35 /* hamrahIOSTests */ = {
+		3AC7BF852E4900E000D7AA35 /* hamrah-ios-tests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3AC7BF9D2E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrahIOSTests" */;
+			buildConfigurationList = 3AC7BF9D2E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrah-ios-tests" */;
 			buildPhases = (
 				3AC7BF822E4900E000D7AA35 /* Sources */,
 				3AC7BF832E4900E000D7AA35 /* Frameworks */,
@@ -158,18 +158,18 @@
 				3AC7BF882E4900E000D7AA35 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				3AC7BF892E4900E000D7AA35 /* hamrahIOSTests */,
+				3AC7BF892E4900E000D7AA35 /* hamrah-ios-tests */,
 			);
-			name = hamrahIOSTests;
+			name = hamrah-ios-tests;
 			packageProductDependencies = (
 			);
-			productName = hamrahIOSTests;
-			productReference = 3AC7BF862E4900E000D7AA35 /* hamrahIOSTests.xctest */;
+			productName = hamrah-ios-tests;
+			productReference = 3AC7BF862E4900E000D7AA35 /* hamrah-ios-tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		3AC7BF8F2E4900E000D7AA35 /* hamrahIOSUITests */ = {
+		3AC7BF8F2E4900E000D7AA35 /* hamrah-ios-uitests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3AC7BFA02E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrahIOSUITests" */;
+			buildConfigurationList = 3AC7BFA02E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrah-ios-uitests" */;
 			buildPhases = (
 				3AC7BF8C2E4900E000D7AA35 /* Sources */,
 				3AC7BF8D2E4900E000D7AA35 /* Frameworks */,
@@ -181,13 +181,13 @@
 				3AC7BF922E4900E000D7AA35 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				3AC7BF932E4900E000D7AA35 /* hamrahIOSUITests */,
+				3AC7BF932E4900E000D7AA35 /* hamrah-ios-uitests */,
 			);
-			name = hamrahIOSUITests;
+			name = hamrah-ios-uitests;
 			packageProductDependencies = (
 			);
-			productName = hamrahIOSUITests;
-			productReference = 3AC7BF902E4900E000D7AA35 /* hamrahIOSUITests.xctest */;
+			productName = hamrah-ios-uitests;
+			productReference = 3AC7BF902E4900E000D7AA35 /* hamrah-ios-uitests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -213,7 +213,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 3AC7BF712E4900DF00D7AA35 /* Build configuration list for PBXProject "hamrahIOS" */;
+			buildConfigurationList = 3AC7BF712E4900DF00D7AA35 /* Build configuration list for PBXProject "hamrah-ios" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -230,9 +230,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				3AC7BF752E4900DF00D7AA35 /* hamrahIOS */,
-				3AC7BF852E4900E000D7AA35 /* hamrahIOSTests */,
-				3AC7BF8F2E4900E000D7AA35 /* hamrahIOSUITests */,
+				3AC7BF752E4900DF00D7AA35 /* hamrah-ios */,
+				3AC7BF852E4900E000D7AA35 /* hamrah-ios-tests */,
+				3AC7BF8F2E4900E000D7AA35 /* hamrah-ios-uitests */,
 			);
 		};
 /* End PBXProject section */
@@ -288,12 +288,12 @@
 /* Begin PBXTargetDependency section */
 		3AC7BF882E4900E000D7AA35 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 3AC7BF752E4900DF00D7AA35 /* hamrahIOS */;
+			target = 3AC7BF752E4900DF00D7AA35 /* hamrah-ios */;
 			targetProxy = 3AC7BF872E4900E000D7AA35 /* PBXContainerItemProxy */;
 		};
 		3AC7BF922E4900E000D7AA35 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 3AC7BF752E4900DF00D7AA35 /* hamrahIOS */;
+			target = 3AC7BF752E4900DF00D7AA35 /* hamrah-ios */;
 			targetProxy = 3AC7BF912E4900E000D7AA35 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -422,14 +422,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = hamrahIOS/hamrahIOS.entitlements;
+				CODE_SIGN_ENTITLEMENTS = hamrah-ios/hamrah-ios.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UR6RM9YCF7;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = hamrahIOS/Info.plist;
+				INFOPLIST_FILE = hamrah-ios/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Hamrah App";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -466,14 +466,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = hamrahIOS/hamrahIOS.entitlements;
+				CODE_SIGN_ENTITLEMENTS = hamrah-ios/hamrah-ios.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UR6RM9YCF7;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = hamrahIOS/Info.plist;
+				INFOPLIST_FILE = hamrah-ios/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Hamrah App";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -523,7 +523,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/hamrahIOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/hamrahIOS";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/hamrah-ios.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/hamrah-ios";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Debug;
@@ -546,7 +546,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/hamrahIOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/hamrahIOS";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/hamrah-ios.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/hamrah-ios";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Release;
@@ -569,7 +569,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = hamrahIOS;
+				TEST_TARGET_NAME = hamrah-ios;
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Debug;
@@ -592,7 +592,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = hamrahIOS;
+				TEST_TARGET_NAME = hamrah-ios;
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Release;
@@ -600,7 +600,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		3AC7BF712E4900DF00D7AA35 /* Build configuration list for PBXProject "hamrahIOS" */ = {
+		3AC7BF712E4900DF00D7AA35 /* Build configuration list for PBXProject "hamrah-ios" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3AC7BF982E4900E000D7AA35 /* Debug */,
@@ -609,7 +609,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3AC7BF9A2E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrahIOS" */ = {
+		3AC7BF9A2E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrah-ios" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3AC7BF9B2E4900E000D7AA35 /* Debug */,
@@ -618,7 +618,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3AC7BF9D2E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrahIOSTests" */ = {
+		3AC7BF9D2E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrah-ios-tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3AC7BF9E2E4900E000D7AA35 /* Debug */,
@@ -627,7 +627,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3AC7BFA02E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrahIOSUITests" */ = {
+		3AC7BFA02E4900E000D7AA35 /* Build configuration list for PBXNativeTarget "hamrah-ios-uitests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3AC7BFA12E4900E000D7AA35 /* Debug */,
