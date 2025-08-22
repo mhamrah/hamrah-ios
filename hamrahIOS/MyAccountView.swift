@@ -40,6 +40,8 @@ struct MyAccountView: View {
             .navigationTitle("My Account")
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
+                // Validate auth state and refresh if needed
+                validateAuthState()
                 loadPasskeys()
             }
             .alert("Error", isPresented: .constant(errorMessage != nil)) {
@@ -165,7 +167,7 @@ struct MyAccountView: View {
                 }
                 .font(.caption)
                 .foregroundColor(.blue)
-                .disabled(isLoading)
+                .disabled(isLoading || authManager.currentUser == nil || authManager.accessToken == nil)
             }
             .padding(.horizontal)
             
@@ -240,6 +242,15 @@ struct MyAccountView: View {
         }
     }
     
+    private func validateAuthState() {
+        // Check if we have the required auth components
+        if authManager.isAuthenticated && (authManager.currentUser == nil || authManager.accessToken == nil) {
+            print("⚠️ Invalid auth state detected - isAuthenticated=true but missing user or token")
+            authManager.logout()
+            errorMessage = "Authentication state invalid. Please sign in again."
+        }
+    }
+    
     private func formatDate(_ dateString: String) -> String {
         let formatter = ISO8601DateFormatter()
         if let date = formatter.date(from: dateString) {
@@ -251,6 +262,12 @@ struct MyAccountView: View {
     }
     
     private func loadPasskeys() {
+        // Debug authentication state
+        print("🔍 MyAccountView Authentication Debug:")
+        print("  Current User: \(authManager.currentUser?.email ?? "nil")")
+        print("  Access Token: \(authManager.accessToken != nil ? "present" : "nil")")
+        print("  Is Authenticated: \(authManager.isAuthenticated)")
+        
         guard let accessToken = authManager.accessToken else { 
             errorMessage = "Not authenticated. Please sign in again."
             return 

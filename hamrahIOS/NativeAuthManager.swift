@@ -19,7 +19,7 @@ class NativeAuthManager: NSObject, ObservableObject {
     @Published var errorMessage: String?
     
     let baseURL = "https://hamrah.app" // Use production server
-    var accessToken: String?
+    @Published var accessToken: String?
     
     struct HamrahUser: Codable {
         let id: String
@@ -293,6 +293,12 @@ class NativeAuthManager: NSObject, ObservableObject {
            let user = try? JSONDecoder().decode(HamrahUser.self, from: userData) {
             currentUser = user
         }
+        
+        // Debug loaded auth state
+        print("🔍 Loaded Auth State:")
+        print("  Is Authenticated: \(isAuthenticated)")
+        print("  Access Token: \(accessToken != nil ? "present" : "nil")")
+        print("  Current User: \(currentUser?.email ?? "nil")")
     }
     
     private func clearStoredAuth() {
