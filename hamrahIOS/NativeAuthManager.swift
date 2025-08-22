@@ -40,22 +40,32 @@ class NativeAuthManager: NSObject, ObservableObject {
         
         // Handle different possible field names for access token
         init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            success = try container.decode(Bool.self, forKey: .success)
-            user = try container.decodeIfPresent(HamrahUser.self, forKey: .user)
-            error = try container.decodeIfPresent(String.self, forKey: .error)
-            refreshToken = try container.decodeIfPresent(String.self, forKey: .refreshToken)
-            expiresIn = try container.decodeIfPresent(Int.self, forKey: .expiresIn)
+            let container = try decoder.container(keyedBy: DynamicCodingKeys.self)
+            success = try container.decode(Bool.self, forKey: DynamicCodingKeys(stringValue: "success")!)
+            user = try container.decodeIfPresent(HamrahUser.self, forKey: DynamicCodingKeys(stringValue: "user")!)
+            error = try container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "error")!)
+            refreshToken = try container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "refreshToken")!)
+            expiresIn = try container.decodeIfPresent(Int.self, forKey: DynamicCodingKeys(stringValue: "expiresIn")!)
             
             // Try different possible field names for access token
-            accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken) ??
-                         try container.decodeIfPresent(String.self, forKey: .access_token) ??
-                         try container.decodeIfPresent(String.self, forKey: .token)
+            var tempAccessToken = try container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "accessToken")!)
+            if tempAccessToken == nil {
+                tempAccessToken = try container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "access_token")!)
+            }
+            if tempAccessToken == nil {
+                tempAccessToken = try container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "token")!)
+            }
+            accessToken = tempAccessToken
         }
         
-        private enum CodingKeys: String, CodingKey {
-            case success, user, error, refreshToken, expiresIn
-            case accessToken, access_token, token
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: DynamicCodingKeys.self)
+            try container.encode(success, forKey: DynamicCodingKeys(stringValue: "success")!)
+            try container.encodeIfPresent(user, forKey: DynamicCodingKeys(stringValue: "user")!)
+            try container.encodeIfPresent(accessToken, forKey: DynamicCodingKeys(stringValue: "accessToken")!)
+            try container.encodeIfPresent(refreshToken, forKey: DynamicCodingKeys(stringValue: "refreshToken")!)
+            try container.encodeIfPresent(expiresIn, forKey: DynamicCodingKeys(stringValue: "expiresIn")!)
+            try container.encodeIfPresent(error, forKey: DynamicCodingKeys(stringValue: "error")!)
         }
     }
     
@@ -132,7 +142,8 @@ class NativeAuthManager: NSObject, ObservableObject {
         do {
             print("🔍 Starting Google Sign-In...")
             
-            guard let presentingViewController = await UIApplication.shared.windows.first?.rootViewController else {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let presentingViewController = windowScene.windows.first?.rootViewController else {
                 throw NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller"])
             }
             

@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct DebugLogsView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var logContent = ""
     @State private var isLoading = true
     @State private var showShareSheet = false
@@ -66,7 +67,7 @@ struct DebugLogsView: View {
                 
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") {
-                        // Dismiss view - implement based on how you present this view
+                        dismiss()
                     }
                 }
             }
