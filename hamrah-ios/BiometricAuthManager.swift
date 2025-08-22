@@ -123,6 +123,12 @@ class BiometricAuthManager: ObservableObject {
 #endif
         case .biometryDisconnected:
             errorMessage = "Biometric sensor is disconnected"
+        case .touchIDNotAvailable:
+            errorMessage = "Touch ID is not available on this device"
+        case .touchIDNotEnrolled:
+            errorMessage = "Touch ID is not set up. Please set up Touch ID in Settings"
+        case .touchIDLockout:
+            errorMessage = "Touch ID is locked. Please use device passcode"
         @unknown default:
             errorMessage = "Biometric authentication failed with unknown error"
         }
