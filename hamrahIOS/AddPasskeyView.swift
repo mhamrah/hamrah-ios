@@ -88,9 +88,19 @@ struct AddPasskeyView: View {
     }
     
     private func addPasskey() {
-        guard let user = authManager.currentUser,
-              let accessToken = authManager.accessToken else {
-            errorMessage = "Authentication required"
+        // Debug authentication state
+        print("🔍 Authentication Debug:")
+        print("  Current User: \(authManager.currentUser?.email ?? "nil")")
+        print("  Access Token: \(authManager.accessToken != nil ? "present" : "nil")")
+        print("  Is Authenticated: \(authManager.isAuthenticated)")
+        
+        guard let user = authManager.currentUser else {
+            errorMessage = "No user found. Please sign in again."
+            return
+        }
+        
+        guard let accessToken = authManager.accessToken else {
+            errorMessage = "No access token found. Please sign in again."
             return
         }
         
@@ -150,6 +160,10 @@ struct AddPasskeyView: View {
         let apiResponse = try JSONDecoder().decode(WebAuthnBeginRegistrationResponse.self, from: data)
         
         if httpResponse.statusCode == 401 {
+            // Clear stored auth on 401 to force re-authentication
+            await MainActor.run {
+                authManager.logout()
+            }
             throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
         }
         
@@ -211,6 +225,10 @@ struct AddPasskeyView: View {
         let apiResponse = try JSONDecoder().decode(APIResponse.self, from: data)
         
         if httpResponse.statusCode == 401 {
+            // Clear stored auth on 401 to force re-authentication
+            await MainActor.run {
+                authManager.logout()
+            }
             throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
         }
         
