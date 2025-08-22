@@ -132,11 +132,13 @@ struct AddPasskeyView: View {
             throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No registration options received"])
         }
         
+        let challengeId = options.challengeId
+        
         // Step 2: Perform platform registration
         let attestation = try await performPlatformRegistration(options: options)
         
         // Step 3: Complete registration with backend
-        try await completeWebAuthnRegistration(attestation: attestation, email: email, accessToken: accessToken)
+        try await completeWebAuthnRegistration(attestation: attestation, challengeId: challengeId, email: email, accessToken: accessToken)
     }
     
     private func beginWebAuthnRegistration(email: String, accessToken: String) async throws -> WebAuthnBeginRegistrationResponse {
@@ -147,7 +149,10 @@ struct AddPasskeyView: View {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
-        let body = ["email": email]
+        let body = [
+            "email": email,
+            "name": authManager.currentUser?.name ?? ""
+        ]
         request.httpBody = try JSONEncoder().encode(body)
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -198,7 +203,7 @@ struct AddPasskeyView: View {
         }
     }
     
-    private func completeWebAuthnRegistration(attestation: ASAuthorizationPlatformPublicKeyCredentialRegistration, email: String, accessToken: String) async throws {
+    private func completeWebAuthnRegistration(attestation: ASAuthorizationPlatformPublicKeyCredentialRegistration, challengeId: String, email: String, accessToken: String) async throws {
         let url = URL(string: "\(authManager.baseURL)/api/webauthn/register/complete")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -206,14 +211,25 @@ struct AddPasskeyView: View {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
-        let body = [
-            "email": email,
-            "credentialId": attestation.credentialID.base64EncodedString(),
-            "attestationObject": attestation.rawAttestationObject?.base64EncodedString() ?? "",
-            "clientDataJSON": attestation.rawClientDataJSON.base64EncodedString()
-        ]
+        // Create the response object matching SimpleWebAuthn's RegistrationResponseJSON format
+        let registrationResponseData = [
+            "id": attestation.credentialID.base64EncodedString(),
+            "rawId": attestation.credentialID.base64EncodedString(),
+            "type": "public-key",
+            "response": [
+                "attestationObject": attestation.rawAttestationObject?.base64EncodedString() ?? "",
+                "clientDataJSON": attestation.rawClientDataJSON.base64EncodedString()
+            ]
+        ] as [String: Any]
         
-        request.httpBody = try JSONEncoder().encode(body)
+        let body = [
+            "response": registrationResponseData,
+            "challengeId": challengeId,
+            "email": email,
+            "name": authManager.currentUser?.name ?? ""
+        ] as [String: Any]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -259,6 +275,7 @@ struct PublicKeyCredentialCreationOptions: Codable {
     let timeout: Int?
     let excludeCredentials: [PublicKeyCredentialDescriptorForCreation]?
     let authenticatorSelection: AuthenticatorSelection?
+    let challengeId: String
 }
 
 struct RelyingParty: Codable {

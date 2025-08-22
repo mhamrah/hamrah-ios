@@ -324,22 +324,44 @@ struct MyAccountView: View {
             throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
         }
         
-        // Always try to decode the response to get the error message
-        let apiResponse = try JSONDecoder().decode(PasskeyListResponse.self, from: data)
+        // Debug: Print response details
+        print("🔍 Passkey fetch response:")
+        print("  Status: \(httpResponse.statusCode)")
+        print("  Data length: \(data.count)")
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("  Response: \(responseString)")
+        }
         
+        // Handle 401 separately before trying to decode
         if httpResponse.statusCode == 401 {
+            await MainActor.run {
+                authManager.logout()
+            }
             throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
         }
         
-        guard httpResponse.statusCode == 200 else {
-            let errorMsg = apiResponse.error ?? "Failed to fetch passkeys (HTTP \(httpResponse.statusCode))"
-            throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+        // Handle empty response
+        if data.isEmpty {
+            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Empty response from server"])
         }
         
-        if apiResponse.success {
-            return apiResponse.credentials
-        } else {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Unknown error"])
+        // Try to decode the response
+        do {
+            let apiResponse = try JSONDecoder().decode(PasskeyListResponse.self, from: data)
+            
+            guard httpResponse.statusCode == 200 else {
+                let errorMsg = apiResponse.error ?? "Failed to fetch passkeys (HTTP \(httpResponse.statusCode))"
+                throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+            }
+            
+            if apiResponse.success {
+                return apiResponse.credentials
+            } else {
+                throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Unknown error"])
+            }
+        } catch let decodingError as DecodingError {
+            print("❌ JSON Decoding Error: \(decodingError)")
+            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response format from server. Please try again."])
         }
     }
     
@@ -451,12 +473,56 @@ struct PasskeyCredential: Codable, Identifiable {
     let lastUsed: String?
     let credentialDeviceType: String?
     let credentialBackedUp: Bool?
+    
+    // Handle cases where some fields might have different names or be missing
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DynamicCodingKeys.self)
+        
+        // Try different possible field names for ID
+        if let credentialId = try? container.decode(String.self, forKey: DynamicCodingKeys(stringValue: "credentialId")!) {
+            id = credentialId
+        } else if let idValue = try? container.decode(String.self, forKey: DynamicCodingKeys(stringValue: "id")!) {
+            id = idValue
+        } else {
+            throw DecodingError.keyNotFound(DynamicCodingKeys(stringValue: "id")!, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "No valid ID field found"))
+        }
+        
+        name = try container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "name")!) ?? "Passkey"
+        createdAt = try container.decode(String.self, forKey: DynamicCodingKeys(stringValue: "createdAt")!)
+        lastUsed = try? container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "lastUsed")!)
+        credentialDeviceType = try? container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "credentialDeviceType")!)
+        credentialBackedUp = try? container.decodeIfPresent(Bool.self, forKey: DynamicCodingKeys(stringValue: "credentialBackedUp")!)
+    }
+}
+
+// Dynamic coding keys to handle different field names
+struct DynamicCodingKeys: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+    
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+    
+    init?(intValue: Int) {
+        self.stringValue = String(intValue)
+        self.intValue = intValue
+    }
 }
 
 struct PasskeyListResponse: Codable {
     let success: Bool
     let credentials: [PasskeyCredential]
     let error: String?
+    
+    // Handle cases where credentials might be missing or null
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        success = try container.decode(Bool.self, forKey: .success)
+        credentials = try container.decodeIfPresent([PasskeyCredential].self, forKey: .credentials) ?? []
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+    }
 }
 
 struct APIResponse: Codable {

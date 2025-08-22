@@ -34,6 +34,8 @@ class NativeAuthManager: NSObject, ObservableObject {
         let success: Bool
         let user: HamrahUser?
         let accessToken: String?
+        let refreshToken: String?
+        let expiresIn: Int?
         let error: String?
     }
     
@@ -49,6 +51,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         let rpId: String
         let allowCredentials: [PublicKeyCredentialDescriptor]?
         let userVerification: String?
+        let challengeId: String
     }
     
     struct PublicKeyCredentialDescriptor: Codable {
@@ -137,6 +140,78 @@ class NativeAuthManager: NSObject, ObservableObject {
     
     // MARK: - Passkey Authentication
     
+    func checkPasskeyAvailability() async -> Bool {
+        // For now, let's check if the user has stored passkeys by checking the credentials endpoint
+        // This is more reliable than trying to use the platform API
+        guard let token = accessToken else { 
+            print("🔍 No access token available for passkey check")
+            return false 
+        }
+        
+        let url = URL(string: "\(baseURL)/api/webauthn/credentials")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                print("🔍 Passkey availability check failed with status: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                return false
+            }
+            
+            // Parse response as simple JSON first
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let success = jsonObject["success"] as? Bool,
+               success,
+               let credentials = jsonObject["credentials"] as? [[String: Any]] {
+                let hasPasskeys = !credentials.isEmpty
+                print("🔍 Passkey availability check: \(hasPasskeys ? "has passkeys (\(credentials.count))" : "no passkeys")")
+                return hasPasskeys
+            }
+            
+            print("🔍 Passkey availability check: no passkeys (invalid response)")
+            return false
+            
+        } catch {
+            print("🔍 Passkey availability check error: \(error)")
+            return false
+        }
+    }
+    
+    func signInWithPasskeyAutomatic() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            print("🔐 Starting automatic Passkey authentication...")
+            
+            // Step 1: Begin WebAuthn authentication without email (for resident keys)
+            let beginOptions = try await beginWebAuthnAuthentication(email: nil)
+            
+            guard let options = beginOptions.options else {
+                throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No authentication options received"])
+            }
+            
+            let challengeId = options.challengeId
+            
+            // Step 2: Perform platform authentication
+            let assertion = try await performPlatformAuthentication(options: options)
+            
+            // Step 3: Complete authentication with backend
+            try await completeWebAuthnAuthentication(assertion: assertion, challengeId: challengeId)
+            
+        } catch {
+            errorMessage = "Passkey authentication failed: \(error.localizedDescription)"
+            print("❌ Automatic Passkey error: \(error)")
+        }
+        
+        isLoading = false
+    }
+    
     func signInWithPasskey(email: String) async {
         isLoading = true
         errorMessage = nil
@@ -151,11 +226,13 @@ class NativeAuthManager: NSObject, ObservableObject {
                 throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No authentication options received"])
             }
             
+            let challengeId = options.challengeId
+            
             // Step 2: Perform platform authentication
             let assertion = try await performPlatformAuthentication(options: options)
             
             // Step 3: Complete authentication with backend
-            try await completeWebAuthnAuthentication(assertion: assertion, email: email)
+            try await completeWebAuthnAuthentication(assertion: assertion, challengeId: challengeId)
             
         } catch {
             errorMessage = "Passkey authentication failed: \(error.localizedDescription)"
@@ -165,15 +242,20 @@ class NativeAuthManager: NSObject, ObservableObject {
         isLoading = false
     }
     
-    private func beginWebAuthnAuthentication(email: String) async throws -> WebAuthnBeginResponse {
+    private func beginWebAuthnAuthentication(email: String?) async throws -> WebAuthnBeginResponse {
         let url = URL(string: "\(baseURL)/api/webauthn/authenticate/begin")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
-        let body = ["email": email]
-        request.httpBody = try JSONEncoder().encode(body)
+        let body: [String: Any]
+        if let email = email {
+            body = ["email": email]
+        } else {
+            body = [:]
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
         let (data, _) = try await URLSession.shared.data(for: request)
         return try JSONDecoder().decode(WebAuthnBeginResponse.self, from: data)
@@ -197,22 +279,33 @@ class NativeAuthManager: NSObject, ObservableObject {
         }
     }
     
-    private func completeWebAuthnAuthentication(assertion: ASAuthorizationPlatformPublicKeyCredentialAssertion, email: String) async throws {
+    
+    private func completeWebAuthnAuthentication(assertion: ASAuthorizationPlatformPublicKeyCredentialAssertion, challengeId: String) async throws {
         let url = URL(string: "\(baseURL)/api/webauthn/authenticate/complete")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
-        let body = [
-            "email": email,
-            "credentialId": assertion.credentialID.base64EncodedString(),
-            "authenticatorData": assertion.rawAuthenticatorData.base64EncodedString(),
-            "signature": assertion.signature.base64EncodedString(),
-            "userHandle": assertion.userID?.base64EncodedString() ?? ""
-        ]
+        // Create the response object matching SimpleWebAuthn's AuthenticationResponseJSON format
+        let authResponseData = [
+            "id": assertion.credentialID.base64EncodedString(),
+            "rawId": assertion.credentialID.base64EncodedString(),
+            "type": "public-key",
+            "response": [
+                "authenticatorData": assertion.rawAuthenticatorData.base64EncodedString(),
+                "clientDataJSON": assertion.rawClientDataJSON.base64EncodedString(),
+                "signature": assertion.signature.base64EncodedString(),
+                "userHandle": assertion.userID?.base64EncodedString() ?? ""
+            ]
+        ] as [String: Any]
         
-        request.httpBody = try JSONEncoder().encode(body)
+        let body = [
+            "response": authResponseData,
+            "challengeId": challengeId
+        ] as [String: Any]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -221,17 +314,50 @@ class NativeAuthManager: NSObject, ObservableObject {
             throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Authentication failed"])
         }
         
-        let authResponse = try JSONDecoder().decode(AuthResponse.self, from: data)
+        // Define a response structure that matches the server response
+        struct PasskeyAuthResponse: Codable {
+            let success: Bool
+            let message: String?
+            let user: HamrahUser?
+            let error: String?
+        }
         
-        if authResponse.success, let user = authResponse.user, let token = authResponse.accessToken {
-            self.currentUser = user
-            self.accessToken = token
-            self.isAuthenticated = true
-            self.storeAuthState()
-            print("✅ Passkey authentication successful")
+        let authResponse = try JSONDecoder().decode(PasskeyAuthResponse.self, from: data)
+        
+        if authResponse.success, let user = authResponse.user {
+            // Extract session token from Set-Cookie header
+            if let setCookieHeader = httpResponse.value(forHTTPHeaderField: "Set-Cookie"),
+               let sessionToken = extractSessionToken(from: setCookieHeader) {
+                self.currentUser = user
+                self.accessToken = sessionToken
+                self.isAuthenticated = true
+                
+                // Store the email for future automatic passkey login
+                self.setLastUsedEmail(user.email)
+                
+                self.storeAuthState()
+                print("✅ Passkey authentication successful")
+            } else {
+                throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No session token received"])
+            }
         } else {
             throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: authResponse.error ?? "Authentication failed"])
         }
+    }
+    
+    // MARK: - Session Token Extraction
+    
+    private func extractSessionToken(from setCookieHeader: String) -> String? {
+        // Look for the session token cookie in the Set-Cookie header
+        // Format: "session=token_value; Path=/; HttpOnly; Secure; SameSite=Lax"
+        let components = setCookieHeader.components(separatedBy: ";")
+        for component in components {
+            let cookiePart = component.trimmingCharacters(in: .whitespaces)
+            if cookiePart.hasPrefix("session=") {
+                return String(cookiePart.dropFirst("session=".count))
+            }
+        }
+        return nil
     }
     
     // MARK: - Backend Integration
@@ -268,11 +394,126 @@ class NativeAuthManager: NSObject, ObservableObject {
             self.currentUser = user
             self.accessToken = token
             self.isAuthenticated = true
+            
+            // Store refresh token if provided
+            if let refreshToken = authResponse.refreshToken {
+                UserDefaults.standard.set(refreshToken, forKey: "hamrah_refresh_token")
+            }
+            
+            // Store token expiration if provided
+            if let expiresIn = authResponse.expiresIn {
+                let expiresAt = Date().timeIntervalSince1970 + TimeInterval(expiresIn)
+                UserDefaults.standard.set(expiresAt, forKey: "hamrah_token_expires_at")
+            }
+            
+            // Store the user's email for future automatic login
+            self.setLastUsedEmail(user.email)
+            
             self.storeAuthState()
             print("✅ Backend authentication successful")
         } else {
             throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: authResponse.error ?? "Authentication failed"])
         }
+    }
+    
+    // MARK: - Token Validation
+    
+    func validateAccessToken() async -> Bool {
+        guard let token = accessToken else { return false }
+        
+        // Try to validate with a backend endpoint that we know exists
+        let url = URL(string: "\(baseURL)/api/webauthn/credentials")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else { return false }
+            
+            if httpResponse.statusCode == 200 {
+                // Token is valid
+                print("🔍 Token validation successful")
+                return true
+            } else if httpResponse.statusCode == 401 {
+                // Token is invalid/expired
+                print("🔍 Token validation failed: token expired (401)")
+                await MainActor.run {
+                    logout()
+                }
+                return false
+            } else {
+                // Other errors - assume token is still valid but endpoint might have issues
+                print("🔍 Token validation inconclusive with status: \(httpResponse.statusCode), assuming valid")
+                return true
+            }
+        } catch {
+            print("🔍 Token validation error: \(error), assuming valid")
+            // If we can't validate due to network issues, assume token is valid
+            return true
+        }
+    }
+    
+    // MARK: - Token Refresh
+    
+    func refreshToken() async -> Bool {
+        guard let refreshToken = UserDefaults.standard.string(forKey: "hamrah_refresh_token") else {
+            print("🔄 No refresh token available")
+            return false
+        }
+        
+        let url = URL(string: "\(baseURL)/api/auth/token/refresh")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
+        
+        let body = ["refresh_token": refreshToken]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                print("🔄 Token refresh failed with status: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                return false
+            }
+            
+            struct TokenRefreshResponse: Codable {
+                let access_token: String
+                let refresh_token: String
+                let expires_in: Int
+            }
+            
+            let tokenResponse = try JSONDecoder().decode(TokenRefreshResponse.self, from: data)
+            
+            // Update stored tokens
+            await MainActor.run {
+                self.accessToken = tokenResponse.access_token
+                UserDefaults.standard.set(tokenResponse.access_token, forKey: "hamrah_access_token")
+                UserDefaults.standard.set(tokenResponse.refresh_token, forKey: "hamrah_refresh_token")
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "hamrah_auth_timestamp")
+                UserDefaults.standard.set(Date().timeIntervalSince1970 + TimeInterval(tokenResponse.expires_in), forKey: "hamrah_token_expires_at")
+            }
+            
+            print("✅ Token refreshed successfully")
+            return true
+            
+        } catch {
+            print("❌ Token refresh error: \(error)")
+            return false
+        }
+    }
+    
+    func isTokenExpiringSoon() -> Bool {
+        let expiresAt = UserDefaults.standard.double(forKey: "hamrah_token_expires_at")
+        guard expiresAt > 0 else { return true }
+        
+        let fiveMinutesFromNow = Date().timeIntervalSince1970 + (5 * 60) // 5 minutes
+        return expiresAt < fiveMinutesFromNow
     }
     
     // MARK: - Storage
@@ -283,6 +524,9 @@ class NativeAuthManager: NSObject, ObservableObject {
         }
         UserDefaults.standard.set(accessToken, forKey: "hamrah_access_token")
         UserDefaults.standard.set(isAuthenticated, forKey: "hamrah_is_authenticated")
+        
+        // Store timestamp for token validation
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "hamrah_auth_timestamp")
     }
     
     private func loadStoredAuth() {
@@ -294,17 +538,52 @@ class NativeAuthManager: NSObject, ObservableObject {
             currentUser = user
         }
         
+        // Check if token is stale (older than 24 hours)
+        let authTimestamp = UserDefaults.standard.double(forKey: "hamrah_auth_timestamp")
+        let dayAgo = Date().timeIntervalSince1970 - (24 * 60 * 60) // 24 hours
+        
+        if authTimestamp > 0 && authTimestamp < dayAgo {
+            print("🔍 Auth token is stale (older than 24 hours), clearing auth state")
+            clearStoredAuth()
+            isAuthenticated = false
+            currentUser = nil
+            accessToken = nil
+        }
+        
         // Debug loaded auth state
         print("🔍 Loaded Auth State:")
         print("  Is Authenticated: \(isAuthenticated)")
         print("  Access Token: \(accessToken != nil ? "present" : "nil")")
         print("  Current User: \(currentUser?.email ?? "nil")")
+        if authTimestamp > 0 {
+            print("  Auth Timestamp: \(Date(timeIntervalSince1970: authTimestamp))")
+        } else {
+            print("  Auth Timestamp: none")
+        }
     }
     
     private func clearStoredAuth() {
         UserDefaults.standard.removeObject(forKey: "hamrah_user")
         UserDefaults.standard.removeObject(forKey: "hamrah_access_token")
+        UserDefaults.standard.removeObject(forKey: "hamrah_refresh_token")
         UserDefaults.standard.removeObject(forKey: "hamrah_is_authenticated")
+        UserDefaults.standard.removeObject(forKey: "hamrah_auth_timestamp")
+        UserDefaults.standard.removeObject(forKey: "hamrah_token_expires_at")
+        // Don't clear last used email for passkey auto-login
+    }
+    
+    // MARK: - Last Used Email for Passkey Auto-Login
+    
+    func getLastUsedEmail() -> String? {
+        return UserDefaults.standard.string(forKey: "hamrah_last_email")
+    }
+    
+    func setLastUsedEmail(_ email: String) {
+        UserDefaults.standard.set(email, forKey: "hamrah_last_email")
+    }
+    
+    func clearLastUsedEmail() {
+        UserDefaults.standard.removeObject(forKey: "hamrah_last_email")
     }
     
     // MARK: - Logout
@@ -389,5 +668,48 @@ class PasskeyAuthDelegate: NSObject, ASAuthorizationControllerDelegate {
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         continuation?.resume(throwing: error)
         continuation = nil
+    }
+}
+
+// MARK: - Passkey Availability Delegate
+
+class PasskeyAvailabilityDelegate: NSObject, ASAuthorizationControllerDelegate {
+    private let completion: (Bool) -> Void
+    private var hasCompleted = false
+    
+    init(completion: @escaping (Bool) -> Void) {
+        self.completion = completion
+        super.init()
+    }
+    
+    func timeoutIfNeeded(timeoutCompletion: () -> Void) {
+        if !hasCompleted {
+            hasCompleted = true
+            timeoutCompletion()
+        }
+    }
+    
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard !hasCompleted else { return }
+        hasCompleted = true
+        // If we get here, passkeys are available
+        completion(true)
+    }
+    
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        guard !hasCompleted else { return }
+        hasCompleted = true
+        
+        // Check if error indicates no passkeys are available
+        if let asError = error as? ASAuthorizationError {
+            switch asError.code {
+            case .notHandled, .notInteractive:
+                completion(false)
+            default:
+                completion(true) // Other errors might still mean passkeys are available
+            }
+        } else {
+            completion(false)
+        }
     }
 }

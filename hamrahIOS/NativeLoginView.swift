@@ -13,6 +13,8 @@ struct NativeLoginView: View {
     @State private var email = ""
     @State private var showingPasskeyLogin = false
     @State private var showingEmailInput = false
+    @State private var hasPasskeysAvailable = false
+    @State private var checkedPasskeyAvailability = false
     
     var body: some View {
         VStack(spacing: 32) {
@@ -37,6 +39,28 @@ struct NativeLoginView: View {
             
             // Authentication Methods
             VStack(spacing: 16) {
+                
+                // Automatic Passkey Sign-In (shown only if passkeys available)
+                if hasPasskeysAvailable {
+                    Button(action: {
+                        Task {
+                            await authManager.signInWithPasskeyAutomatic()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "faceid")
+                                .foregroundColor(.white)
+                            Text("Sign in with Passkey")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.purple)
+                        .cornerRadius(8)
+                    }
+                    .disabled(authManager.isLoading)
+                }
                 
                 // Apple Sign-In
                 Button(action: {
@@ -78,23 +102,25 @@ struct NativeLoginView: View {
                 }
                 .disabled(authManager.isLoading)
                 
-                // Passkey Sign-In
-                Button(action: {
-                    showingEmailInput = true
-                }) {
-                    HStack {
-                        Image(systemName: "faceid")
-                            .foregroundColor(.white)
-                        Text("Sign in with Passkey")
-                            .font(.headline)
-                            .foregroundColor(.white)
+                // Manual Passkey Sign-In (shown only if no automatic passkeys available)
+                if !hasPasskeysAvailable && checkedPasskeyAvailability {
+                    Button(action: {
+                        showingEmailInput = true
+                    }) {
+                        HStack {
+                            Image(systemName: "key")
+                                .foregroundColor(.white)
+                            Text("Sign in with Email + Passkey")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.purple)
+                        .cornerRadius(8)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.purple)
-                    .cornerRadius(8)
+                    .disabled(authManager.isLoading)
                 }
-                .disabled(authManager.isLoading)
             }
             
             // Loading Indicator
@@ -141,6 +167,16 @@ struct NativeLoginView: View {
                     await authManager.signInWithPasskey(email: email)
                 }
                 showingEmailInput = false
+            }
+        }
+        .onAppear {
+            if !checkedPasskeyAvailability {
+                Task {
+                    hasPasskeysAvailable = await authManager.checkPasskeyAvailability()
+                    checkedPasskeyAvailability = true
+                    
+                    print("🔍 Passkey availability check: \(hasPasskeysAvailable)")
+                }
             }
         }
     }
