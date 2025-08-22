@@ -7,7 +7,7 @@
 
 import Testing
 import Foundation
-@testable import hamrahIOS
+@testable import hamrah_ios
 
 struct hamrahIOSTests {
 
