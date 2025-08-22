@@ -18,6 +18,7 @@ struct MyAccountView: View {
     @State private var credentialToDelete: PasskeyCredential?
     @State private var showAddPasskey = false
     @State private var showBiometricSettings = false
+    @State private var showDebugLogs = false
     
     var body: some View {
         NavigationView {
@@ -31,6 +32,11 @@ struct MyAccountView: View {
                     
                     // Passkeys Section
                     passkeysSection
+                    
+                    // Debug Section (only in debug builds)
+                    #if DEBUG
+                    debugSection
+                    #endif
                     
                     // Logout Section
                     logoutSection
@@ -225,6 +231,50 @@ struct MyAccountView: View {
                         showBiometricSettings = false
                     })
             }
+        }
+    }
+    
+    private var debugSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Debug")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 0) {
+                Button(action: {
+                    showDebugLogs = true
+                }) {
+                    HStack {
+                        Image(systemName: "doc.text")
+                            .foregroundColor(.orange)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Debug Logs")
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                            
+                            Text("View authentication logs")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+        }
+        .sheet(isPresented: $showDebugLogs) {
+            DebugLogsView()
         }
     }
     

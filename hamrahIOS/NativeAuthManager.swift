@@ -37,6 +37,26 @@ class NativeAuthManager: NSObject, ObservableObject {
         let refreshToken: String?
         let expiresIn: Int?
         let error: String?
+        
+        // Handle different possible field names for access token
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            success = try container.decode(Bool.self, forKey: .success)
+            user = try container.decodeIfPresent(HamrahUser.self, forKey: .user)
+            error = try container.decodeIfPresent(String.self, forKey: .error)
+            refreshToken = try container.decodeIfPresent(String.self, forKey: .refreshToken)
+            expiresIn = try container.decodeIfPresent(Int.self, forKey: .expiresIn)
+            
+            // Try different possible field names for access token
+            accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken) ??
+                         try container.decodeIfPresent(String.self, forKey: .access_token) ??
+                         try container.decodeIfPresent(String.self, forKey: .token)
+        }
+        
+        private enum CodingKeys: String, CodingKey {
+            case success, user, error, refreshToken, expiresIn
+            case accessToken, access_token, token
+        }
     }
     
     struct WebAuthnBeginResponse: Codable {
@@ -119,9 +139,17 @@ class NativeAuthManager: NSObject, ObservableObject {
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController)
             let user = result.user
             
+            print("🔍 Google Sign-In result received:")
+            print("  User ID: \(user.userID ?? "nil")")
+            print("  Email: \(user.profile?.email ?? "nil")")
+            print("  Name: \(user.profile?.name ?? "nil")")
+            
             guard let idToken = user.idToken?.tokenString else {
                 throw NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No ID token"])
             }
+            
+            print("🔍 Google ID token received, length: \(idToken.count)")
+            print("🔍 Sending authentication request to backend...")
             
             // Send Google token to backend
             try await authenticateWithBackend(provider: "google", credential: idToken, additionalData: [
@@ -129,6 +157,8 @@ class NativeAuthManager: NSObject, ObservableObject {
                 "name": user.profile?.name ?? "",
                 "picture": user.profile?.imageURL(withDimension: 200)?.absoluteString ?? ""
             ])
+            
+            print("🔍 Google backend authentication completed successfully")
             
         } catch {
             errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
@@ -383,17 +413,47 @@ class NativeAuthManager: NSObject, ObservableObject {
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Backend authentication failed"])
+        // Debug: Print response details
+        DebugLogger.shared.log("🔍 Auth Response Debug:")
+        if let httpResponse = response as? HTTPURLResponse {
+            DebugLogger.shared.log("  Status Code: \(httpResponse.statusCode)")
+            DebugLogger.shared.log("  Headers: \(httpResponse.allHeaderFields)")
+        }
+        DebugLogger.shared.log("  Data Length: \(data.count)")
+        if let responseString = String(data: data, encoding: .utf8) {
+            DebugLogger.shared.log("  Response Body: \(responseString)")
         }
         
-        let authResponse = try JSONDecoder().decode(AuthResponse.self, from: data)
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            print("❌ Auth failed with status code: \(statusCode)")
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Backend authentication failed with status \(statusCode)"])
+        }
+        
+        let authResponse: AuthResponse
+        do {
+            authResponse = try JSONDecoder().decode(AuthResponse.self, from: data)
+        } catch {
+            print("❌ JSON Decoding Error: \(error)")
+            print("❌ Raw response: \(String(data: data, encoding: .utf8) ?? "nil")")
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse server response: \(error.localizedDescription)"])
+        }
+        
+        print("🔍 Parsed AuthResponse:")
+        print("  Success: \(authResponse.success)")
+        print("  User: \(authResponse.user?.email ?? "nil")")
+        print("  Access Token: \(authResponse.accessToken != nil ? "present" : "nil")")
+        print("  Error: \(authResponse.error ?? "nil")")
         
         if authResponse.success, let user = authResponse.user, let token = authResponse.accessToken {
-            self.currentUser = user
-            self.accessToken = token
-            self.isAuthenticated = true
+            print("🔍 Setting authentication state...")
+            await MainActor.run {
+                self.currentUser = user
+                self.accessToken = token
+                self.isAuthenticated = true
+                print("🔍 Auth state updated on main thread - isAuthenticated: \(self.isAuthenticated)")
+            }
             
             // Store refresh token if provided
             if let refreshToken = authResponse.refreshToken {
@@ -410,9 +470,21 @@ class NativeAuthManager: NSObject, ObservableObject {
             self.setLastUsedEmail(user.email)
             
             self.storeAuthState()
-            print("✅ Backend authentication successful")
+            print("✅ Backend authentication successful - User: \(user.email), Auth State: \(self.isAuthenticated)")
+            
+            // Force UI update on next run loop to ensure all observers are notified
+            DispatchQueue.main.async {
+                self.objectWillChange.send()
+                print("🔍 Sent objectWillChange notification")
+            }
         } else {
-            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: authResponse.error ?? "Authentication failed"])
+            print("❌ Auth Response Validation Failed:")
+            print("  Success: \(authResponse.success)")
+            print("  User nil: \(authResponse.user == nil)")
+            print("  Token nil: \(authResponse.accessToken == nil)")
+            print("  Error: \(authResponse.error ?? "none")")
+            
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: authResponse.error ?? "Authentication failed - invalid response format"])
         }
     }
     
@@ -601,13 +673,21 @@ class NativeAuthManager: NSObject, ObservableObject {
 
 extension NativeAuthManager: ASAuthorizationControllerDelegate {
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        print("🍎 Apple Sign-In authorization completed")
         Task {
             do {
                 if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
+                    print("🍎 Apple ID Credential received:")
+                    print("  User ID: \(appleIDCredential.user)")
+                    print("  Email: \(appleIDCredential.email ?? "nil")")
+                    print("  Full Name: \(appleIDCredential.fullName?.description ?? "nil")")
+                    
                     guard let identityToken = appleIDCredential.identityToken,
                           let tokenString = String(data: identityToken, encoding: .utf8) else {
                         throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No identity token"])
                     }
+                    
+                    print("🍎 Identity token received, length: \(tokenString.count)")
                     
                     let additionalData = [
                         "email": appleIDCredential.email ?? "",
@@ -616,13 +696,22 @@ extension NativeAuthManager: ASAuthorizationControllerDelegate {
                             .joined(separator: " ")
                     ]
                     
+                    print("🍎 Sending authentication request to backend...")
                     try await authenticateWithBackend(provider: "apple", credential: tokenString, additionalData: additionalData)
+                    print("🍎 Backend authentication completed successfully")
+                } else {
+                    print("❌ Apple Sign-In: Invalid credential type")
                 }
             } catch {
-                errorMessage = "Apple Sign-In failed: \(error.localizedDescription)"
+                await MainActor.run {
+                    errorMessage = "Apple Sign-In failed: \(error.localizedDescription)"
+                }
                 print("❌ Apple Sign-In completion error: \(error)")
             }
-            isLoading = false
+            await MainActor.run {
+                isLoading = false
+            }
+            print("🍎 Apple Sign-In flow completed, isLoading set to false")
         }
     }
     
