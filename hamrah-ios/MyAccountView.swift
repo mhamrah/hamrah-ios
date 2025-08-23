@@ -362,11 +362,18 @@ struct MyAccountView: View {
     }
     
     private func fetchPasskeys(accessToken: String) async throws -> [PasskeyCredential] {
+        return try await SecureAPIService.shared.get(
+            endpoint: "/api/webauthn/credentials",
+            accessToken: accessToken,
+            responseType: PasskeyListResponse.self
+        ).credentials
+    }
+    
+    private func fetchPasskeysLegacy(accessToken: String) async throws -> [PasskeyCredential] {
         let url = URL(string: "\(authManager.baseURL)/api/webauthn/credentials")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -416,12 +423,22 @@ struct MyAccountView: View {
     }
     
     private func deletePasskey(credentialId: String, accessToken: String) async throws {
+        let body = ["credentialId": credentialId]
+        
+        _ = try await SecureAPIService.shared.delete(
+            endpoint: "/api/webauthn/credentials",
+            body: body,
+            accessToken: accessToken,
+            responseType: APIResponse.self
+        )
+    }
+    
+    private func deletePasskeyLegacy(credentialId: String, accessToken: String) async throws {
         let url = URL(string: "\(authManager.baseURL)/api/webauthn/credentials")!
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
         
         let body = ["credentialId": credentialId]
         request.httpBody = try JSONEncoder().encode(body)
