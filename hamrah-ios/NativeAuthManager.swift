@@ -18,7 +18,7 @@ class NativeAuthManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    let baseURL = "https://hamrah.app" // Use production server
+    let baseURL = "https://api.hamrah.app" // Use production API server
     @Published var accessToken: String?
     
     // Secure API service with App Attestation
@@ -339,18 +339,13 @@ class NativeAuthManager: NSObject, ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Add App Attestation headers if available (fallback to legacy header)
-        do {
-            let challenge = generateRequestChallenge(url: url, method: "POST", body: body)
-            let attestationHeaders = try await AppAttestationManager.shared.generateAttestationHeaders(for: challenge)
-            for (key, value) in attestationHeaders {
-                request.setValue(value, forHTTPHeaderField: key)
-            }
-            request.setValue(challenge.base64EncodedString(), forHTTPHeaderField: "X-Request-Challenge")
-        } catch {
-            print("⚠️ Failed to generate attestation headers: \(error). Using legacy header.")
-            request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
+        // Add App Attestation headers (required)
+        let challenge = generateRequestChallenge(url: url, method: "POST", body: body)
+        let attestationHeaders = try await AppAttestationManager.shared.generateAttestationHeaders(for: challenge)
+        for (key, value) in attestationHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
         }
+        request.setValue(challenge.base64EncodedString(), forHTTPHeaderField: "X-Request-Challenge")
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
