@@ -1,6 +1,7 @@
 import Foundation
 import DeviceCheck
 import CommonCrypto
+import UIKit
 
 class AppAttestationManager: ObservableObject {
     static let shared = AppAttestationManager()
@@ -16,6 +17,28 @@ class AppAttestationManager: ObservableObject {
     
     /// Generates attestation headers for API requests
     func generateAttestationHeaders(for challenge: Data) async throws -> [String: String] {
+        #if targetEnvironment(simulator)
+        // Simulator: Use development-only identification
+        return generateSimulatorHeaders()
+        #else
+        // Physical device: Use full App Attestation
+        return try await generateDeviceAttestationHeaders(for: challenge)
+        #endif
+    }
+    
+    #if targetEnvironment(simulator)
+    private func generateSimulatorHeaders() -> [String: String] {
+        print("🔧 Using simulator development headers (App Attestation not available)")
+        return [
+            "X-iOS-Development": "simulator",
+            "X-iOS-Bundle-ID": Bundle.main.bundleIdentifier ?? "app.hamrah.ios",
+            "X-iOS-Simulator-ID": UIDevice.current.identifierForVendor?.uuidString ?? "unknown",
+            "X-iOS-App-Version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        ]
+    }
+    #endif
+    
+    private func generateDeviceAttestationHeaders(for challenge: Data) async throws -> [String: String] {
         let keyId = try await ensureAttestationKey()
         let assertion = try await generateAssertion(keyId: keyId, challenge: challenge)
         
@@ -28,6 +51,10 @@ class AppAttestationManager: ObservableObject {
     
     /// One-time setup: Generate key and get attestation from Apple
     func initializeAttestation(accessToken: String) async throws {
+        #if targetEnvironment(simulator)
+        print("🔧 Skipping App Attestation initialization on simulator")
+        return
+        #else
         print("🔐 Initializing iOS App Attestation...")
         
         // Step 1: Generate attestation key if needed
@@ -56,6 +83,7 @@ class AppAttestationManager: ObservableObject {
         // Mark as completed
         _ = keychain.store("true", for: "hamrah_attestation_completed")
         print("✅ iOS App Attestation initialization completed")
+        #endif
     }
     
     // MARK: - Private Implementation
@@ -66,20 +94,27 @@ class AppAttestationManager: ObservableObject {
             return existingKeyId
         }
         
-        // Generate new key
+        // Generate new key - only works on physical devices
         guard service.isSupported else {
+            let errorMessage = "App Attestation not supported on this device"
+            print("❌ \(errorMessage)")
             throw AttestationError.notSupported
         }
         
-        let newKeyId = try await service.generateKey()
-        
-        // Store key ID securely
-        guard keychain.store(newKeyId, for: keyId) else {
-            throw AttestationError.keyStorageFailed
+        do {
+            let newKeyId = try await service.generateKey()
+            
+            // Store key ID securely
+            guard keychain.store(newKeyId, for: keyId) else {
+                throw AttestationError.keyStorageFailed
+            }
+            
+            print("🔑 Generated new App Attestation key: \(newKeyId.prefix(8))...")
+            return newKeyId
+        } catch {
+            print("❌ Failed to generate App Attestation key: \(error)")
+            throw AttestationError.keyGenerationFailed(error.localizedDescription)
         }
-        
-        print("🔑 Generated new App Attestation key: \(newKeyId.prefix(8))...")
-        return newKeyId
     }
     
     private func generateAttestation(keyId: String, challenge: Data) async throws -> Data {
@@ -203,6 +238,7 @@ struct AttestationVerificationResponse: Codable {
 enum AttestationError: LocalizedError {
     case notSupported
     case keyStorageFailed
+    case keyGenerationFailed(String)
     case challengeRequestFailed
     case invalidChallenge
     case verificationRequestFailed
@@ -214,6 +250,8 @@ enum AttestationError: LocalizedError {
             return "App Attestation is not supported on this device"
         case .keyStorageFailed:
             return "Failed to store attestation key securely"
+        case .keyGenerationFailed(let details):
+            return "Failed to generate attestation key: \(details)"
         case .challengeRequestFailed:
             return "Failed to request attestation challenge"
         case .invalidChallenge:

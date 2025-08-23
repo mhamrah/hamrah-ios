@@ -155,48 +155,6 @@ struct AddPasskeyView: View {
         )
     }
     
-    private func beginWebAuthnRegistrationLegacy(email: String, accessToken: String) async throws -> WebAuthnBeginRegistrationResponse {
-        let url = URL(string: "\(authManager.baseURL)/api/webauthn/register/begin")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        
-        let body = [
-            "email": email,
-            "name": authManager.currentUser?.name ?? ""
-        ]
-        request.httpBody = try JSONEncoder().encode(body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        // Always try to decode the response to get the error message
-        let apiResponse = try JSONDecoder().decode(WebAuthnBeginRegistrationResponse.self, from: data)
-        
-        if httpResponse.statusCode == 401 {
-            // Clear stored auth on 401 to force re-authentication
-            await MainActor.run {
-                authManager.logout()
-            }
-            throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            let errorMsg = apiResponse.error ?? "Failed to begin registration (HTTP \(httpResponse.statusCode))"
-            throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
-        }
-        
-        if !apiResponse.success {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Registration failed"])
-        }
-        
-        return apiResponse
-    }
-    
     private func performPlatformRegistration(options: PublicKeyCredentialCreationOptions) async throws -> ASAuthorizationPlatformPublicKeyCredentialRegistration {
         let challenge = Data(base64Encoded: options.challenge) ?? Data()
         let userID = Data(base64Encoded: options.user.id) ?? Data()

@@ -36,21 +36,14 @@ class SecureAPIService: ObservableObject {
         // Generate challenge for attestation
         let challenge = generateRequestChallenge(url: url, method: method, body: body)
         
-        do {
-            // Add App Attestation headers
-            let attestationHeaders = try await attestationManager.generateAttestationHeaders(for: challenge)
-            for (key, value) in attestationHeaders {
-                request.setValue(value, forHTTPHeaderField: key)
-            }
-            
-            // Add challenge for server verification
-            request.setValue(challenge.base64EncodedString(), forHTTPHeaderField: "X-Request-Challenge")
-            
-        } catch {
-            print("⚠️ Failed to generate attestation headers: \(error). Falling back to legacy headers.")
-            // Fallback to legacy header if attestation fails
-            request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
+        // Add App Attestation headers (required)
+        let attestationHeaders = try await attestationManager.generateAttestationHeaders(for: challenge)
+        for (key, value) in attestationHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
         }
+        
+        // Add challenge for server verification
+        request.setValue(challenge.base64EncodedString(), forHTTPHeaderField: "X-Request-Challenge")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -169,6 +162,8 @@ enum APIError: LocalizedError {
     case invalidResponse
     case unauthorized
     case serverError(Int, String)
+    case attestationFailed(String)
+    case simulatorNotSupported
     
     var errorDescription: String? {
         switch self {
@@ -178,6 +173,14 @@ enum APIError: LocalizedError {
             return "Authentication required. Please sign in again."
         case .serverError(let code, let message):
             return "Server error (\(code)): \(message)"
+        case .attestationFailed(let details):
+            #if targetEnvironment(simulator)
+            return "App verification not supported on simulator. Please test on a physical device."
+            #else
+            return "App verification failed: \(details)"
+            #endif
+        case .simulatorNotSupported:
+            return "This feature requires a physical iOS device and is not supported on the simulator."
         }
     }
 }

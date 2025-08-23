@@ -369,59 +369,6 @@ struct MyAccountView: View {
         ).credentials
     }
     
-    private func fetchPasskeysLegacy(accessToken: String) async throws -> [PasskeyCredential] {
-        let url = URL(string: "\(authManager.baseURL)/api/webauthn/credentials")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        // Debug: Print response details
-        print("🔍 Passkey fetch response:")
-        print("  Status: \(httpResponse.statusCode)")
-        print("  Data length: \(data.count)")
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("  Response: \(responseString)")
-        }
-        
-        // Handle 401 separately before trying to decode
-        if httpResponse.statusCode == 401 {
-            await MainActor.run {
-                authManager.logout()
-            }
-            throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
-        }
-        
-        // Handle empty response
-        if data.isEmpty {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Empty response from server"])
-        }
-        
-        // Try to decode the response
-        do {
-            let apiResponse = try JSONDecoder().decode(PasskeyListResponse.self, from: data)
-            
-            guard httpResponse.statusCode == 200 else {
-                let errorMsg = apiResponse.error ?? "Failed to fetch passkeys (HTTP \(httpResponse.statusCode))"
-                throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
-            }
-            
-            if apiResponse.success {
-                return apiResponse.credentials
-            } else {
-                throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Unknown error"])
-            }
-        } catch let decodingError as DecodingError {
-            print("❌ JSON Decoding Error: \(decodingError)")
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response format from server. Please try again."])
-        }
-    }
-    
     private func deletePasskey(credentialId: String, accessToken: String) async throws {
         let body = ["credentialId": credentialId]
         
@@ -431,30 +378,6 @@ struct MyAccountView: View {
             accessToken: accessToken,
             responseType: APIResponse.self
         )
-    }
-    
-    private func deletePasskeyLegacy(credentialId: String, accessToken: String) async throws {
-        let url = URL(string: "\(authManager.baseURL)/api/webauthn/credentials")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        
-        let body = ["credentialId": credentialId]
-        request.httpBody = try JSONEncoder().encode(body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to delete passkey"])
-        }
-        
-        let apiResponse = try JSONDecoder().decode(APIResponse.self, from: data)
-        
-        if !apiResponse.success {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Unknown error"])
-        }
     }
 }
 
