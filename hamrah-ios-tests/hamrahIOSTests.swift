@@ -371,7 +371,7 @@ struct ManualLoginOptionsTests {
         
         // When: Checking Google Sign-In configuration
         // Then: Should have proper configuration
-        #expect(authManager.baseURL == "https://hamrah.app")
+        #expect(authManager.baseURL == "https://api.hamrah.app")
         #expect(authManager.isLoading == false)
     }
     
@@ -541,7 +541,7 @@ struct AccountCreationTests {
         let authManager = NativeAuthManager()
         
         // Test that required Google Sign-In properties are available
-        #expect(authManager.baseURL == "https://hamrah.app")
+        #expect(authManager.baseURL == "https://api.hamrah.app")
         #expect(authManager.errorMessage == nil)
         #expect(authManager.isLoading == false)
     }
