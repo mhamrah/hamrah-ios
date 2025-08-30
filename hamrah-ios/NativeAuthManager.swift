@@ -18,7 +18,9 @@ class NativeAuthManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    let baseURL = "https://api.hamrah.app" // Use production API server
+    var baseURL: String {
+        APIConfiguration.shared.baseURL
+    }
     @Published var accessToken: String?
     
     // Secure API service with App Attestation

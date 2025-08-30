@@ -371,7 +371,8 @@ struct ManualLoginOptionsTests {
         
         // When: Checking Google Sign-In configuration
         // Then: Should have proper configuration
-        #expect(authManager.baseURL == "https://api.hamrah.app")
+        #expect(authManager.baseURL.contains("hamrah.app"))
+        #expect(authManager.baseURL.hasPrefix("https://"))
         #expect(authManager.isLoading == false)
     }
     
@@ -541,9 +542,48 @@ struct AccountCreationTests {
         let authManager = NativeAuthManager()
         
         // Test that required Google Sign-In properties are available
-        #expect(authManager.baseURL == "https://api.hamrah.app")
+        #expect(authManager.baseURL.contains("hamrah.app"))
+        #expect(authManager.baseURL.hasPrefix("https://"))
         #expect(authManager.errorMessage == nil)
         #expect(authManager.isLoading == false)
+    }
+}
+
+// MARK: - API Configuration Tests
+
+struct APIConfigurationTests {
+    @Test("APIConfiguration has correct default settings")
+    func testDefaultConfiguration() async throws {
+        let config = APIConfiguration()
+        
+        #expect(config.currentEnvironment == .production)
+        #expect(config.baseURL == "https://api.hamrah.app")
+        #expect(config.customBaseURL == "")
+    }
+    
+    @Test("APIConfiguration can switch environments")
+    func testEnvironmentSwitching() async throws {
+        let config = APIConfiguration()
+        
+        config.currentEnvironment = .development
+        #expect(config.baseURL == "https://localhost:5173")
+        
+        config.currentEnvironment = .production
+        #expect(config.baseURL == "https://api.hamrah.app")
+    }
+    
+    @Test("APIConfiguration handles custom URLs with HTTPS enforcement")
+    func testCustomURLHTTPSEnforcement() async throws {
+        let config = APIConfiguration()
+        
+        config.setCustomURL("example.com")
+        #expect(config.baseURL == "https://example.com")
+        
+        config.setCustomURL("http://example.com")
+        #expect(config.baseURL == "https://example.com")
+        
+        config.setCustomURL("https://example.com")
+        #expect(config.baseURL == "https://example.com")
     }
 }
 

@@ -19,6 +19,7 @@ struct MyAccountView: View {
     @State private var showAddPasskey = false
     @State private var showBiometricSettings = false
     @State private var showDebugLogs = false
+    @State private var showAPISettings = false
     
     var body: some View {
         NavigationView {
@@ -32,6 +33,11 @@ struct MyAccountView: View {
                     
                     // Passkeys Section
                     passkeysSection
+                    
+                    // API Configuration Section
+                    #if DEBUG
+                    apiConfigurationSection
+                    #endif
                     
                     // Debug Section (only in debug builds)
                     #if DEBUG
@@ -231,6 +237,50 @@ struct MyAccountView: View {
                         showBiometricSettings = false
                     })
             }
+        }
+    }
+    
+    private var apiConfigurationSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("API Configuration")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 0) {
+                Button(action: {
+                    showAPISettings = true
+                }) {
+                    HStack {
+                        Image(systemName: "server.rack")
+                            .foregroundColor(.blue)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("API Endpoint")
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                            
+                            Text("Currently: \(APIConfiguration.shared.currentEnvironment.rawValue)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        }
+        .sheet(isPresented: $showAPISettings) {
+            APIConfigurationView()
         }
     }
     

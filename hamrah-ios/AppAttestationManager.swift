@@ -9,7 +9,9 @@ class AppAttestationManager: ObservableObject {
     private let service = DCAppAttestService.shared
     private let keychain = KeychainManager.shared
     private let keyId = "hamrah_app_attest_key"
-    private let baseURL = "https://api.hamrah.app"
+    private var baseURL: String {
+        APIConfiguration.shared.baseURL
+    }
     
     private init() {}
     
