@@ -1,46 +1,69 @@
 # Hamrah iOS App
 
 ## Overview
-Hamrah is a productivity app that uses AI and ML to help users stay organized. It serves as your AI 'buddy' to remember everything so you don't have to, with deep integration into iOS.
+Hamrah iOS is a native Swift application that provides secure authentication and user management, serving as a client to the hamrah-api backend. The app focuses on secure authentication flows including Apple Sign-In, Google Sign-In, and WebAuthn passkeys.
 
-## Core Principles
+## Core Features
 
-### Offline-First Architecture
-- App functions without internet connectivity
-- Local data storage with backend synchronization
-- Graceful handling of network unavailability
+### Secure Authentication
+- **Apple Sign-In**: Native iOS integration with Apple ID authentication
+- **Google Sign-In**: OAuth 2.0 flow with Google accounts  
+- **WebAuthn Passkeys**: Biometric authentication with Face ID/Touch ID
+- **App Attestation**: iOS DeviceCheck integration to verify app authenticity
 
-### Performance & Speed
-- Speed is a primary feature
-- Extremely performant with clear background work indicators
-- Fast, responsive interactions
-
-### Modern UX/UI
-- Clean, modern design following iOS best practices
-- Motion, animation, and gradients for a "living" feel
-- Deep iOS ecosystem integration to surface relevant information
+### Security Architecture
+- **Keychain Storage**: Secure storage for tokens and sensitive data
+- **App Attestation**: Validates authentic app requests to prevent tampering
+- **Token Management**: Automatic refresh and secure storage of access/refresh tokens
+- **TLS Pinning**: Certificate pinning for API communications (recommended)
 
 ## Technical Architecture
 
 ### Backend Integration
-- **API**: `api.hamrah.app`
-- **Protocol**: Protobuf serialization over HTTP
+- **API Endpoint**: `https://api.hamrah.app/api/`
+- **Protocol**: JSON over HTTPS
+- **Authentication**: Bearer token with App Attestation headers
 - **Related Projects**: 
-  - API backend: `../hamrah-api`
-  - Web app: `../hamrah-web` (Qwik framework)
+  - API backend: `../hamrah-api` (Rust/Axum)
+  - Web app: `../hamrah-app` (Qwik framework)
+
+### Key Components
+- **NativeAuthManager**: Main authentication coordinator
+- **SecureAPIService**: Handles App Attestation and secure API calls  
+- **TokenManager**: Manages access/refresh tokens in Keychain
+- **BiometricAuthManager**: Handles Face ID/Touch ID authentication
+
+### Authentication Flow
+1. **OAuth Login**: Apple/Google OAuth handled natively in iOS
+2. **Token Exchange**: OAuth tokens exchanged for hamrah-api access tokens
+3. **App Attestation**: iOS App Attest service validates app authenticity
+4. **Secure Storage**: Tokens stored in Keychain with biometric protection
+5. **API Communication**: Authenticated API calls with attestation headers
 
 ### Data Strategy
-- Local-first with backend synchronization
-- Protobuf for efficient data serialization
-- Recommended local storage options for iOS:
-  - **Core Data**: Apple's native ORM with CloudKit sync capabilities
-  - **SQLite**: Direct SQL with custom protobuf serialization layer
-  - **Realm**: Modern database with sync capabilities
-  - **SwiftData**: Apple's newest data framework (iOS 17+)
+- **API-First**: All data operations go through hamrah-api
+- **Local Caching**: Minimal local storage for UI state only
+- **Keychain Storage**: Secure storage for authentication tokens
+- **No Local Database**: App relies entirely on hamrah-api for data persistence
 
-### Development Guidelines
-- Always create tests to verify functionality
-- Start with a test plan then implement until tests pass
-- Prioritize performance in all implementations
+## Development Guidelines
+
+### Security Best Practices
+- **Never store sensitive data in UserDefaults** - use Keychain only
+- **Always include App Attestation headers** for API calls
+- **Implement biometric authentication** for token access
+- **Use certificate pinning** for API communications
+- **Validate API responses** and handle errors gracefully
+
+### Code Standards
 - Follow iOS Human Interface Guidelines
-- Implement proper offline/online state handling
+- Use SwiftUI for modern UI development
+- Implement proper error handling and user feedback
+- Create unit tests for authentication flows
+- Use Combine for reactive programming patterns
+
+### Testing Strategy
+- Unit tests for authentication managers
+- Integration tests for API communication
+- UI tests for authentication flows
+- Security tests for token handling

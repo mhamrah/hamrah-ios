@@ -142,46 +142,17 @@ struct AddPasskeyView: View {
     }
     
     private func beginWebAuthnRegistration(email: String, accessToken: String) async throws -> WebAuthnBeginRegistrationResponse {
-        let url = URL(string: "\(authManager.baseURL)/api/webauthn/register/begin")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
-        
         let body = [
             "email": email,
             "name": authManager.currentUser?.name ?? ""
         ]
-        request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        // Always try to decode the response to get the error message
-        let apiResponse = try JSONDecoder().decode(WebAuthnBeginRegistrationResponse.self, from: data)
-        
-        if httpResponse.statusCode == 401 {
-            // Clear stored auth on 401 to force re-authentication
-            await MainActor.run {
-                authManager.logout()
-            }
-            throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            let errorMsg = apiResponse.error ?? "Failed to begin registration (HTTP \(httpResponse.statusCode))"
-            throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
-        }
-        
-        if !apiResponse.success {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Registration failed"])
-        }
-        
-        return apiResponse
+        return try await SecureAPIService.shared.post(
+            endpoint: "/api/webauthn/register/begin",
+            body: body,
+            accessToken: accessToken,
+            responseType: WebAuthnBeginRegistrationResponse.self
+        )
     }
     
     private func performPlatformRegistration(options: PublicKeyCredentialCreationOptions) async throws -> ASAuthorizationPlatformPublicKeyCredentialRegistration {
@@ -204,13 +175,6 @@ struct AddPasskeyView: View {
     }
     
     private func completeWebAuthnRegistration(attestation: ASAuthorizationPlatformPublicKeyCredentialRegistration, challengeId: String, email: String, accessToken: String) async throws {
-        let url = URL(string: "\(authManager.baseURL)/api/webauthn/register/complete")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
-        
         // Create the response object matching SimpleWebAuthn's RegistrationResponseJSON format
         let registrationResponseData = [
             "id": attestation.credentialID.base64EncodedString(),
@@ -229,33 +193,12 @@ struct AddPasskeyView: View {
             "name": authManager.currentUser?.name ?? ""
         ] as [String: Any]
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        // Always try to decode the response to get the error message
-        let apiResponse = try JSONDecoder().decode(APIResponse.self, from: data)
-        
-        if httpResponse.statusCode == 401 {
-            // Clear stored auth on 401 to force re-authentication
-            await MainActor.run {
-                authManager.logout()
-            }
-            throw NSError(domain: "API", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication expired. Please sign in again."])
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            let errorMsg = apiResponse.error ?? "Registration failed (HTTP \(httpResponse.statusCode))"
-            throw NSError(domain: "API", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
-        }
-        
-        if !apiResponse.success {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: apiResponse.error ?? "Registration failed"])
-        }
+        _ = try await SecureAPIService.shared.post(
+            endpoint: "/api/webauthn/register/complete",
+            body: body,
+            accessToken: accessToken,
+            responseType: APIResponse.self
+        )
     }
 }
 
