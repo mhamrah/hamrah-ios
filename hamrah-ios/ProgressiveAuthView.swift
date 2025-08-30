@@ -151,9 +151,10 @@ struct BiometricAuthPromptView: View {
     private func attemptBiometricAuth() async {
         let success = await biometricManager.authenticateForAppAccess()
         if success {
-            // Continue with progressive auth flow
+            // Biometric auth successful - complete authentication if user has valid token
+            // or proceed to next auth method if token needs refresh
             Task {
-                await progressiveAuth.startProgressiveAuth()
+                await progressiveAuth.handleSuccessfulBiometricAuth()
             }
         } else {
             // Skip to next auth method

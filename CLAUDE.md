@@ -67,3 +67,6 @@ Hamrah iOS is a native Swift application that provides secure authentication and
 - Integration tests for API communication
 - UI tests for authentication flows
 - Security tests for token handling
+
+### Performance
+- Prioritize performance in all implementations

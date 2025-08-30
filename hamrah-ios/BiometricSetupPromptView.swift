@@ -118,7 +118,7 @@ struct BiometricSetupPromptView: View {
         isSettingUp = true
         
         Task {
-            let success = await biometricManager.enableBiometricAuth()
+            let _ = await biometricManager.enableBiometricAuth()
             
             await MainActor.run {
                 isSettingUp = false

@@ -105,23 +105,16 @@ class NativeAuthManager: NSObject, ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        do {
-            print("🍎 Starting Apple Sign-In...")
-            
-            let request = ASAuthorizationAppleIDProvider().createRequest()
-            request.requestedScopes = [.fullName, .email]
-            
-            let authController = ASAuthorizationController(authorizationRequests: [request])
-            authController.delegate = self
-            authController.presentationContextProvider = self
-            
-            authController.performRequests()
-            
-        } catch {
-            errorMessage = "Apple Sign-In failed: \(error.localizedDescription)"
-            print("❌ Apple Sign-In error: \(error)")
-            isLoading = false
-        }
+        print("🍎 Starting Apple Sign-In...")
+        
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = [.fullName, .email]
+        
+        let authController = ASAuthorizationController(authorizationRequests: [request])
+        authController.delegate = self
+        authController.presentationContextProvider = self
+        
+        authController.performRequests()
     }
     
     // MARK: - Google Sign-In
