@@ -18,8 +18,11 @@ class NativeAuthManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    let baseURL = "https://hamrah.app" // Use production server
+    let baseURL = "https://api.hamrah.app" // Use production API server
     @Published var accessToken: String?
+    
+    // Secure API service with App Attestation
+    private let secureAPI = SecureAPIService.shared
     
     struct HamrahUser: Codable {
         let id: String
@@ -175,40 +178,32 @@ class NativeAuthManager: NSObject, ObservableObject {
     // MARK: - Passkey Authentication
     
     func checkPasskeyAvailability() async -> Bool {
-        // For now, let's check if the user has stored passkeys by checking the credentials endpoint
-        // This is more reliable than trying to use the platform API
         guard let token = accessToken else { 
             print("🔍 No access token available for passkey check")
             return false 
         }
         
-        let url = URL(string: "\(baseURL)/api/webauthn/credentials")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
-        
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                print("🔍 Passkey availability check failed with status: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-                return false
+            struct PasskeyCredentialsResponse: Codable {
+                let success: Bool
+                let credentials: [PasskeyCredentialInfo]
+                let error: String?
             }
             
-            // Parse response as simple JSON first
-            if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let success = jsonObject["success"] as? Bool,
-               success,
-               let credentials = jsonObject["credentials"] as? [[String: Any]] {
-                let hasPasskeys = !credentials.isEmpty
-                print("🔍 Passkey availability check: \(hasPasskeys ? "has passkeys (\(credentials.count))" : "no passkeys")")
-                return hasPasskeys
+            struct PasskeyCredentialInfo: Codable {
+                let id: String
+                let name: String?
             }
             
-            print("🔍 Passkey availability check: no passkeys (invalid response)")
-            return false
+            let response = try await secureAPI.get(
+                endpoint: "/api/webauthn/credentials",
+                accessToken: token,
+                responseType: PasskeyCredentialsResponse.self
+            )
+            
+            let hasPasskeys = response.success && !response.credentials.isEmpty
+            print("🔍 Passkey availability check: \(hasPasskeys ? "has passkeys (\(response.credentials.count))" : "no passkeys")")
+            return hasPasskeys
             
         } catch {
             print("🔍 Passkey availability check error: \(error)")
@@ -277,22 +272,19 @@ class NativeAuthManager: NSObject, ObservableObject {
     }
     
     private func beginWebAuthnAuthentication(email: String?) async throws -> WebAuthnBeginResponse {
-        let url = URL(string: "\(baseURL)/api/webauthn/authenticate/begin")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
-        
         let body: [String: Any]
         if let email = email {
             body = ["email": email]
         } else {
             body = [:]
         }
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONDecoder().decode(WebAuthnBeginResponse.self, from: data)
+        return try await secureAPI.post(
+            endpoint: "/api/webauthn/authenticate/begin",
+            body: body,
+            accessToken: nil, // No auth needed for begin authentication
+            responseType: WebAuthnBeginResponse.self
+        )
     }
     
     private func performPlatformAuthentication(options: PublicKeyCredentialRequestOptions) async throws -> ASAuthorizationPlatformPublicKeyCredentialAssertion {
@@ -315,12 +307,6 @@ class NativeAuthManager: NSObject, ObservableObject {
     
     
     private func completeWebAuthnAuthentication(assertion: ASAuthorizationPlatformPublicKeyCredentialAssertion, challengeId: String) async throws {
-        let url = URL(string: "\(baseURL)/api/webauthn/authenticate/complete")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("hamrah-ios", forHTTPHeaderField: "X-Requested-With")
-        
         // Create the response object matching SimpleWebAuthn's AuthenticationResponseJSON format
         let authResponseData = [
             "id": assertion.credentialID.base64EncodedString(),
@@ -338,6 +324,21 @@ class NativeAuthManager: NSObject, ObservableObject {
             "response": authResponseData,
             "challengeId": challengeId
         ] as [String: Any]
+        
+        // Note: This method needs to handle Set-Cookie headers manually since SecureAPI doesn't support it yet
+        // TODO: Update SecureAPI to support cookie handling for this specific case
+        let url = URL(string: "\(baseURL)/api/webauthn/authenticate/complete")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Add App Attestation headers (required)
+        let challenge = generateRequestChallenge(url: url, method: "POST", body: body)
+        let attestationHeaders = try await AppAttestationManager.shared.generateAttestationHeaders(for: challenge)
+        for (key, value) in attestationHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.setValue(challenge.base64EncodedString(), forHTTPHeaderField: "X-Request-Challenge")
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
@@ -370,6 +371,14 @@ class NativeAuthManager: NSObject, ObservableObject {
                 self.setLastUsedEmail(user.email)
                 
                 self.storeAuthState()
+                
+                // Initialize App Attestation in background
+                if let token = self.accessToken {
+                    Task {
+                        await secureAPI.initializeAttestation(accessToken: token)
+                    }
+                }
+                
                 print("✅ Passkey authentication successful")
             } else {
                 throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No session token received"])
@@ -474,6 +483,14 @@ class NativeAuthManager: NSObject, ObservableObject {
             self.setLastUsedEmail(user.email)
             
             self.storeAuthState()
+            
+            // Initialize App Attestation in background
+            if let token = self.accessToken {
+                Task {
+                    await secureAPI.initializeAttestation(accessToken: token)
+                }
+            }
+            
             print("✅ Backend authentication successful - User: \(user.email), Auth State: \(self.isAuthenticated)")
             
             // Force UI update on next run loop to ensure all observers are notified
@@ -595,27 +612,42 @@ class NativeAuthManager: NSObject, ObservableObject {
     // MARK: - Storage
     
     private func storeAuthState() {
+        let keychain = KeychainManager.shared
+        
+        // Store user data
         if let user = currentUser, let userData = try? JSONEncoder().encode(user) {
-            UserDefaults.standard.set(userData, forKey: "hamrah_user")
+            _ = keychain.store(userData, for: "hamrah_user")
         }
-        UserDefaults.standard.set(accessToken, forKey: "hamrah_access_token")
-        UserDefaults.standard.set(isAuthenticated, forKey: "hamrah_is_authenticated")
+        
+        // Store tokens securely
+        if let token = accessToken {
+            _ = keychain.store(token, for: "hamrah_access_token")
+        }
+        
+        // Store authentication state
+        _ = keychain.store(isAuthenticated, for: "hamrah_is_authenticated")
         
         // Store timestamp for token validation
-        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "hamrah_auth_timestamp")
+        _ = keychain.store(Date().timeIntervalSince1970, for: "hamrah_auth_timestamp")
     }
     
     private func loadStoredAuth() {
-        isAuthenticated = UserDefaults.standard.bool(forKey: "hamrah_is_authenticated")
-        accessToken = UserDefaults.standard.string(forKey: "hamrah_access_token")
+        let keychain = KeychainManager.shared
         
-        if let userData = UserDefaults.standard.data(forKey: "hamrah_user"),
+        // First try to migrate from UserDefaults if data exists there
+        migrateFromUserDefaults()
+        
+        // Load from secure Keychain
+        isAuthenticated = keychain.retrieveBool(for: "hamrah_is_authenticated") ?? false
+        accessToken = keychain.retrieveString(for: "hamrah_access_token")
+        
+        if let userData = keychain.retrieve(for: "hamrah_user"),
            let user = try? JSONDecoder().decode(HamrahUser.self, from: userData) {
             currentUser = user
         }
         
         // Check if token is stale (older than 24 hours)
-        let authTimestamp = UserDefaults.standard.double(forKey: "hamrah_auth_timestamp")
+        let authTimestamp = keychain.retrieveDouble(for: "hamrah_auth_timestamp") ?? 0
         let dayAgo = Date().timeIntervalSince1970 - (24 * 60 * 60) // 24 hours
         
         if authTimestamp > 0 && authTimestamp < dayAgo {
@@ -639,6 +671,12 @@ class NativeAuthManager: NSObject, ObservableObject {
     }
     
     private func clearStoredAuth() {
+        let keychain = KeychainManager.shared
+        
+        // Clear from Keychain
+        _ = keychain.clearAllHamrahData()
+        
+        // Also clear from UserDefaults in case of migration
         UserDefaults.standard.removeObject(forKey: "hamrah_user")
         UserDefaults.standard.removeObject(forKey: "hamrah_access_token")
         UserDefaults.standard.removeObject(forKey: "hamrah_refresh_token")
@@ -646,6 +684,63 @@ class NativeAuthManager: NSObject, ObservableObject {
         UserDefaults.standard.removeObject(forKey: "hamrah_auth_timestamp")
         UserDefaults.standard.removeObject(forKey: "hamrah_token_expires_at")
         // Don't clear last used email for passkey auto-login
+    }
+    
+    // MARK: - Migration from UserDefaults to Keychain
+    
+    private func migrateFromUserDefaults() {
+        let keychain = KeychainManager.shared
+        
+        // Check if we've already migrated
+        if keychain.retrieveBool(for: "hamrah_migration_completed") == true {
+            return
+        }
+        
+        print("🔄 Migrating auth data from UserDefaults to Keychain...")
+        
+        // Migrate user data
+        if let userData = UserDefaults.standard.data(forKey: "hamrah_user") {
+            _ = keychain.store(userData, for: "hamrah_user")
+            UserDefaults.standard.removeObject(forKey: "hamrah_user")
+        }
+        
+        // Migrate access token
+        if let accessToken = UserDefaults.standard.string(forKey: "hamrah_access_token") {
+            _ = keychain.store(accessToken, for: "hamrah_access_token")
+            UserDefaults.standard.removeObject(forKey: "hamrah_access_token")
+        }
+        
+        // Migrate refresh token
+        if let refreshToken = UserDefaults.standard.string(forKey: "hamrah_refresh_token") {
+            _ = keychain.store(refreshToken, for: "hamrah_refresh_token")
+            UserDefaults.standard.removeObject(forKey: "hamrah_refresh_token")
+        }
+        
+        // Migrate authentication state
+        let wasAuthenticated = UserDefaults.standard.bool(forKey: "hamrah_is_authenticated")
+        if UserDefaults.standard.object(forKey: "hamrah_is_authenticated") != nil {
+            _ = keychain.store(wasAuthenticated, for: "hamrah_is_authenticated")
+            UserDefaults.standard.removeObject(forKey: "hamrah_is_authenticated")
+        }
+        
+        // Migrate timestamp
+        let timestamp = UserDefaults.standard.double(forKey: "hamrah_auth_timestamp")
+        if timestamp > 0 {
+            _ = keychain.store(timestamp, for: "hamrah_auth_timestamp")
+            UserDefaults.standard.removeObject(forKey: "hamrah_auth_timestamp")
+        }
+        
+        // Migrate token expiry
+        let expiresAt = UserDefaults.standard.double(forKey: "hamrah_token_expires_at")
+        if expiresAt > 0 {
+            _ = keychain.store(expiresAt, for: "hamrah_token_expires_at")
+            UserDefaults.standard.removeObject(forKey: "hamrah_token_expires_at")
+        }
+        
+        // Mark migration as completed
+        _ = keychain.store(true, for: "hamrah_migration_completed")
+        
+        print("✅ Migration to Keychain completed successfully")
     }
     
     // MARK: - Last Used Email for Passkey Auto-Login
@@ -804,5 +899,27 @@ class PasskeyAvailabilityDelegate: NSObject, ASAuthorizationControllerDelegate {
         } else {
             completion(false)
         }
+    }
+}
+
+// MARK: - Helper Extensions for NativeAuthManager
+
+extension NativeAuthManager {
+    private func generateRequestChallenge(url: URL, method: String, body: [String: Any]?) -> Data {
+        // Create a deterministic challenge based on request details
+        var challengeString = "\(method):\(url.absoluteString)"
+        
+        if let body = body {
+            // Sort keys for deterministic serialization
+            let sortedKeys = body.keys.sorted()
+            let bodyString = sortedKeys.map { key in
+                "\(key):\(body[key] ?? "")"
+            }.joined(separator: ",")
+            challengeString += ":\(bodyString)"
+        }
+        
+        challengeString += ":\(Date().timeIntervalSince1970)"
+        
+        return challengeString.data(using: .utf8) ?? Data()
     }
 }

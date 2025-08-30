@@ -78,23 +78,32 @@ Make sure your hamrah.app backend is configured with the correct domain for WebA
 ## 4. Backend Configuration
 
 ### Environment Variables
-Set these in your hamrah.app backend:
+Set these in your hamrah-api backend:
 
 ```bash
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id.googleusercontent.com
+# Internal API Authentication
+INTERNAL_API_KEY=your-secure-internal-api-key
 
-# Apple OAuth (if using web OAuth flow)
+# Google OAuth (for web OAuth flow)
+GOOGLE_CLIENT_ID=your-google-client-id.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Apple OAuth (for web OAuth flow)
 APPLE_CLIENT_ID=your.app.bundle.id
 APPLE_TEAM_ID=your-team-id
 APPLE_KEY_ID=your-key-id
 APPLE_CERTIFICATE=your-private-key-pem
+
+# App Attestation (iOS security)
+APPLE_APP_ATTEST_TEAM_ID=your-team-id
+APPLE_APP_ATTEST_BUNDLE_ID=app.hamrah.ios
 ```
 
 ### Update CORS Settings
-Ensure your backend allows requests from the iOS app. Update your CORS configuration to include:
-- `hamrah://` scheme for OAuth callbacks
-- iOS app bundle identifier
+Ensure your hamrah-api backend allows requests from the iOS app. The API is configured with CORS for:
+- `https://hamrah.app` (production web app)
+- `http://localhost:5173` (development web app)
+- Native iOS app requests (no origin header)
 
 ## 5. Test the Setup
 
@@ -144,10 +153,11 @@ Ensure your backend allows requests from the iOS app. Update your CORS configura
 - Ensure the domain matches between iOS and backend configuration
 
 ### Backend Issues
-- Check that the `/api/auth/native` endpoint is working
-- Verify environment variables are set correctly
+- Check that the `/api/internal/tokens` endpoint is working
+- Verify environment variables are set correctly in hamrah-api
 - Monitor server logs for authentication errors
 - Test token verification with actual tokens
+- Ensure App Attestation validation is working for iOS requests
 
 ## 8. Next Steps
 
