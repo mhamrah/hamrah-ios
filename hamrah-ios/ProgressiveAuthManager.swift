@@ -193,6 +193,19 @@ class ProgressiveAuthManager: ObservableObject {
         await startProgressiveAuth()
     }
     
+    func handleSuccessfulBiometricAuth() async {
+        print("🔐 Biometric authentication successful, checking authentication state...")
+        
+        // If user already has valid authentication, complete the flow
+        if authManager.isAuthenticated && authManager.accessToken != nil && !authManager.isTokenExpiringSoon() {
+            await completeAuthentication()
+        } else {
+            // User needs to re-authenticate with passkey or manual login
+            // since biometric auth only verifies identity, not server authentication
+            await attemptPasskeyAutoLogin()
+        }
+    }
+    
     // MARK: - State Helpers
     
     var shouldShowManualLogin: Bool {
