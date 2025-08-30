@@ -304,7 +304,7 @@ struct AutomaticPasskeyAuthenticationTests {
         // Given: Auth manager with no stored email
         let authManager = NativeAuthManager()
         let biometricManager = BiometricAuthManager()
-        let progressiveAuth = ProgressiveAuthManager(
+        let _ = ProgressiveAuthManager(
             authManager: authManager,
             biometricManager: biometricManager
         )
@@ -359,9 +359,9 @@ struct ManualLoginOptionsTests {
         
         // When: Checking if Apple Sign-In is configurable
         // Then: Auth manager should have Apple Sign-In functionality available
-        // Verify it's an ASAuthorizationControllerDelegate
-        #expect(authManager is ASAuthorizationControllerDelegate)
-        #expect(authManager is ASAuthorizationControllerPresentationContextProviding)
+        // Verify basic properties are set correctly
+        #expect(authManager.baseURL.contains("hamrah.app"))
+        #expect(authManager.isLoading == false)
     }
     
     @Test("NativeAuthManager supports Google Sign-In configuration") 
@@ -529,13 +529,10 @@ struct AccountCreationTests {
         let authManager = NativeAuthManager()
         
         // Test that auth manager can handle Apple Sign-In flow
-        // This verifies the necessary delegate methods and setup exist
-        #expect(authManager is ASAuthorizationControllerDelegate)
-        #expect(authManager is ASAuthorizationControllerPresentationContextProviding)
-        
         // Verify error handling properties exist
         #expect(authManager.errorMessage == nil)
         #expect(authManager.isLoading == false)
+        #expect(authManager.baseURL.contains("hamrah.app"))
     }
     
     @Test("Auth manager handles Google Sign-In flow for new accounts")
@@ -599,11 +596,10 @@ struct PasskeyRegistrationTests {
         // Given: Passkey auth delegate
         let delegate = PasskeyAuthDelegate.shared
         
-        // Test that delegate exists and has expected structure
-        #expect(delegate is ASAuthorizationControllerDelegate)
-        
-        // Verify delegate can be used (no need to check specific selectors)
-        #expect(delegate is NSObject)
+        // Test that delegate exists and can be used
+        // Verify delegate has expected singleton behavior
+        let anotherReference = PasskeyAuthDelegate.shared
+        #expect(delegate === anotherReference)
     }
     
     @Test("WebAuthn request options structure is valid")

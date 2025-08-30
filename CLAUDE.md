@@ -25,18 +25,13 @@ Hamrah is a productivity app that uses AI and ML to help users stay organized. I
 ### Backend Integration
 - **API**: `api.hamrah.app`
 - **Protocol**: Protobuf serialization over HTTP
-- **Related Projects**: 
+- **Related Projects**:
   - API backend: `../hamrah-api`
   - Web app: `../hamrah-web` (Qwik framework)
 
 ### Data Strategy
 - Local-first with backend synchronization
 - Protobuf for efficient data serialization
-- Recommended local storage options for iOS:
-  - **Core Data**: Apple's native ORM with CloudKit sync capabilities
-  - **SQLite**: Direct SQL with custom protobuf serialization layer
-  - **Realm**: Modern database with sync capabilities
-  - **SwiftData**: Apple's newest data framework (iOS 17+)
 
 ### Development Guidelines
 - Always create tests to verify functionality
