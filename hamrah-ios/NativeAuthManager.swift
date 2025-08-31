@@ -101,6 +101,16 @@ class NativeAuthManager: NSObject, ObservableObject {
         configureGoogleSignIn()
     }
     
+    // Test-specific initializer that ensures production environment
+    static func testInstance() -> NativeAuthManager {
+        // Force production environment for tests
+        APIConfiguration.shared.currentEnvironment = .production
+        APIConfiguration.shared.customBaseURL = ""
+        
+        let manager = NativeAuthManager()
+        return manager
+    }
+    
     // MARK: - Apple Sign-In
     
     func signInWithApple() async {

@@ -355,7 +355,7 @@ struct ManualLoginOptionsTests {
     @Test("NativeAuthManager supports Apple Sign-In configuration")
     func testAppleSignInConfiguration() async throws {
         // Given: Fresh auth manager
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // When: Checking if Apple Sign-In is configurable
         // Then: Auth manager should have Apple Sign-In functionality available
@@ -367,7 +367,7 @@ struct ManualLoginOptionsTests {
     @Test("NativeAuthManager supports Google Sign-In configuration") 
     func testGoogleSignInConfiguration() async throws {
         // Given: Fresh auth manager
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // When: Checking Google Sign-In configuration
         // Then: Should have proper configuration
@@ -379,7 +379,7 @@ struct ManualLoginOptionsTests {
     @Test("NativeAuthManager supports passkey authentication")
     func testPasskeyAuthenticationSupport() async throws {
         // Given: Fresh auth manager  
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // When: Checking passkey authentication functionality
         // Then: Should have passkey-related properties
@@ -527,7 +527,7 @@ struct AccountCreationTests {
     @Test("Auth manager handles Apple Sign-In flow for new accounts")
     func testAppleSignInFlowForNewAccounts() async throws {
         // Given: Auth manager setup for Apple Sign-In
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // Test that auth manager can handle Apple Sign-In flow
         // Verify error handling properties exist
@@ -539,7 +539,7 @@ struct AccountCreationTests {
     @Test("Auth manager handles Google Sign-In flow for new accounts")
     func testGoogleSignInFlowForNewAccounts() async throws {
         // Given: Auth manager 
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // Test that required Google Sign-In properties are available
         #expect(authManager.baseURL.contains("hamrah.app"))

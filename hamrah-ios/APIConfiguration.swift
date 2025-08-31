@@ -49,6 +49,13 @@ class APIConfiguration {
         self.customBaseURL = UserDefaults.standard.string(forKey: customBaseURLKey) ?? ""
     }
     
+    // Test-specific initializer that always uses production
+    static func testInstance() -> APIConfiguration {
+        let config = APIConfiguration()
+        config.currentEnvironment = .production
+        return config
+    }
+    
     var baseURL: String {
         switch currentEnvironment {
         case .production, .development:
