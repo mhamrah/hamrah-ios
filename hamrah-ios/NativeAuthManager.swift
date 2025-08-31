@@ -18,7 +18,9 @@ class NativeAuthManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    let baseURL = "https://api.hamrah.app" // Use production API server
+    var baseURL: String {
+        APIConfiguration.shared.baseURL
+    }
     @Published var accessToken: String?
     
     // Secure API service with App Attestation
@@ -97,6 +99,16 @@ class NativeAuthManager: NSObject, ObservableObject {
         super.init()
         loadStoredAuth()
         configureGoogleSignIn()
+    }
+    
+    // Test-specific initializer that ensures production environment
+    static func testInstance() -> NativeAuthManager {
+        // Force production environment for tests
+        APIConfiguration.shared.currentEnvironment = .production
+        APIConfiguration.shared.customBaseURL = ""
+        
+        let manager = NativeAuthManager()
+        return manager
     }
     
     // MARK: - Apple Sign-In

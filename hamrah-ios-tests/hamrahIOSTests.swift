@@ -355,7 +355,7 @@ struct ManualLoginOptionsTests {
     @Test("NativeAuthManager supports Apple Sign-In configuration")
     func testAppleSignInConfiguration() async throws {
         // Given: Fresh auth manager
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // When: Checking if Apple Sign-In is configurable
         // Then: Auth manager should have Apple Sign-In functionality available
@@ -367,18 +367,19 @@ struct ManualLoginOptionsTests {
     @Test("NativeAuthManager supports Google Sign-In configuration") 
     func testGoogleSignInConfiguration() async throws {
         // Given: Fresh auth manager
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // When: Checking Google Sign-In configuration
         // Then: Should have proper configuration
-        #expect(authManager.baseURL == "https://api.hamrah.app")
+        #expect(authManager.baseURL.contains("hamrah.app"))
+        #expect(authManager.baseURL.hasPrefix("https://"))
         #expect(authManager.isLoading == false)
     }
     
     @Test("NativeAuthManager supports passkey authentication")
     func testPasskeyAuthenticationSupport() async throws {
         // Given: Fresh auth manager  
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // When: Checking passkey authentication functionality
         // Then: Should have passkey-related properties
@@ -526,7 +527,7 @@ struct AccountCreationTests {
     @Test("Auth manager handles Apple Sign-In flow for new accounts")
     func testAppleSignInFlowForNewAccounts() async throws {
         // Given: Auth manager setup for Apple Sign-In
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // Test that auth manager can handle Apple Sign-In flow
         // Verify error handling properties exist
@@ -538,12 +539,54 @@ struct AccountCreationTests {
     @Test("Auth manager handles Google Sign-In flow for new accounts")
     func testGoogleSignInFlowForNewAccounts() async throws {
         // Given: Auth manager 
-        let authManager = NativeAuthManager()
+        let authManager = NativeAuthManager.testInstance()
         
         // Test that required Google Sign-In properties are available
-        #expect(authManager.baseURL == "https://api.hamrah.app")
+        #expect(authManager.baseURL.contains("hamrah.app"))
+        #expect(authManager.baseURL.hasPrefix("https://"))
         #expect(authManager.errorMessage == nil)
         #expect(authManager.isLoading == false)
+    }
+}
+
+// MARK: - API Configuration Tests
+
+struct APIConfigurationTests {
+    @Test("APIConfiguration has correct default settings")
+    func testDefaultConfiguration() async throws {
+        let config = APIConfiguration()
+        config.reset()  // Reset to default state for testing
+        
+        #expect(config.currentEnvironment == APIConfiguration.Environment.production)
+        #expect(config.baseURL == "https://api.hamrah.app")
+        #expect(config.customBaseURL == "")
+    }
+    
+    @Test("APIConfiguration can switch environments")
+    func testEnvironmentSwitching() async throws {
+        let config = APIConfiguration()
+        config.reset()  // Reset to default state for testing
+        
+        config.currentEnvironment = APIConfiguration.Environment.development
+        #expect(config.baseURL == "https://localhost:5173")
+        
+        config.currentEnvironment = APIConfiguration.Environment.production
+        #expect(config.baseURL == "https://api.hamrah.app")
+    }
+    
+    @Test("APIConfiguration handles custom URLs with HTTPS enforcement")
+    func testCustomURLHTTPSEnforcement() async throws {
+        let config = APIConfiguration()
+        config.reset()  // Reset to default state for testing
+        
+        config.setCustomURL("example.com")
+        #expect(config.baseURL == "https://example.com")
+        
+        config.setCustomURL("http://example.com")
+        #expect(config.baseURL == "https://example.com")
+        
+        config.setCustomURL("https://example.com")
+        #expect(config.baseURL == "https://example.com")
     }
 }
 

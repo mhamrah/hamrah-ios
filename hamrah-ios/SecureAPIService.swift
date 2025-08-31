@@ -4,7 +4,9 @@ class SecureAPIService: ObservableObject {
     static let shared = SecureAPIService()
     
     private let attestationManager = AppAttestationManager.shared
-    private let baseURL = "https://api.hamrah.app"
+    private var baseURL: String {
+        APIConfiguration.shared.baseURL
+    }
     
     private init() {}
     
