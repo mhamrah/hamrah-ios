@@ -16,21 +16,21 @@
 			containerPortal = 3AC7BF6E2E4900DF00D7AA35 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 3AC7BF752E4900DF00D7AA35;
-			remoteInfo = hamrah-ios;
+			remoteInfo = "hamrah-ios";
 		};
 		3AC7BF912E4900E000D7AA35 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3AC7BF6E2E4900DF00D7AA35 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 3AC7BF752E4900DF00D7AA35;
-			remoteInfo = hamrah-ios;
+			remoteInfo = "hamrah-ios";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		3AC7BF762E4900DF00D7AA35 /* hamrah-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = hamrah-ios.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		3AC7BF862E4900E000D7AA35 /* hamrah-ios-tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hamrah-ios-tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		3AC7BF902E4900E000D7AA35 /* hamrah-ios-uitests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = hamrah-ios-uitests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AC7BF762E4900DF00D7AA35 /* hamrah-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "hamrah-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AC7BF862E4900E000D7AA35 /* hamrah-ios-tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "hamrah-ios-tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AC7BF902E4900E000D7AA35 /* hamrah-ios-uitests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "hamrah-ios-uitests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -49,17 +49,17 @@
 			exceptions = (
 				3AA713272E53DB5800628E18 /* Exceptions for "hamrah-ios" folder in "hamrah-ios" target */,
 			);
-			path = hamrah-ios;
+			path = "hamrah-ios";
 			sourceTree = "<group>";
 		};
 		3AC7BF892E4900E000D7AA35 /* hamrah-ios-tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = hamrah-ios-tests;
+			path = "hamrah-ios-tests";
 			sourceTree = "<group>";
 		};
 		3AC7BF932E4900E000D7AA35 /* hamrah-ios-uitests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = hamrah-ios-uitests;
+			path = "hamrah-ios-uitests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -136,11 +136,11 @@
 			fileSystemSynchronizedGroups = (
 				3AC7BF782E4900DF00D7AA35 /* hamrah-ios */,
 			);
-			name = hamrah-ios;
+			name = "hamrah-ios";
 			packageProductDependencies = (
 				3A13B8732E54C42C000DFCC2 /* GoogleSignIn */,
 			);
-			productName = hamrah-ios;
+			productName = "hamrah-ios";
 			productReference = 3AC7BF762E4900DF00D7AA35 /* hamrah-ios.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -160,10 +160,10 @@
 			fileSystemSynchronizedGroups = (
 				3AC7BF892E4900E000D7AA35 /* hamrah-ios-tests */,
 			);
-			name = hamrah-ios-tests;
+			name = "hamrah-ios-tests";
 			packageProductDependencies = (
 			);
-			productName = hamrah-ios-tests;
+			productName = "hamrah-ios-tests";
 			productReference = 3AC7BF862E4900E000D7AA35 /* hamrah-ios-tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
@@ -183,10 +183,10 @@
 			fileSystemSynchronizedGroups = (
 				3AC7BF932E4900E000D7AA35 /* hamrah-ios-uitests */,
 			);
-			name = hamrah-ios-uitests;
+			name = "hamrah-ios-uitests";
 			packageProductDependencies = (
 			);
-			productName = hamrah-ios-uitests;
+			productName = "hamrah-ios-uitests";
 			productReference = 3AC7BF902E4900E000D7AA35 /* hamrah-ios-uitests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
@@ -422,14 +422,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = hamrah-ios/hamrah-ios.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "hamrah-ios/hamrah-ios.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UR6RM9YCF7;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = hamrah-ios/Info.plist;
+				INFOPLIST_FILE = "hamrah-ios/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Hamrah App";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -446,13 +446,13 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.hamrah.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -466,14 +466,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = hamrah-ios/hamrah-ios.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "hamrah-ios/hamrah-ios.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UR6RM9YCF7;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = hamrah-ios/Info.plist;
+				INFOPLIST_FILE = "hamrah-ios/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Hamrah App";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -490,13 +490,13 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.hamrah.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -569,7 +569,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = hamrah-ios;
+				TEST_TARGET_NAME = "hamrah-ios";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Debug;
@@ -592,7 +592,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = hamrah-ios;
+				TEST_TARGET_NAME = "hamrah-ios";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Release;
