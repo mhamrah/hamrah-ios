@@ -36,7 +36,7 @@ class APIConfiguration {
         }
     }
     
-    private init() {
+    init() {
         // Load saved environment or default to production
         if let savedEnvironment = UserDefaults.standard.string(forKey: environmentKey),
            let environment = Environment(rawValue: savedEnvironment) {

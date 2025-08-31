@@ -555,8 +555,9 @@ struct APIConfigurationTests {
     @Test("APIConfiguration has correct default settings")
     func testDefaultConfiguration() async throws {
         let config = APIConfiguration()
+        config.reset()  // Reset to default state for testing
         
-        #expect(config.currentEnvironment == .production)
+        #expect(config.currentEnvironment == APIConfiguration.Environment.production)
         #expect(config.baseURL == "https://api.hamrah.app")
         #expect(config.customBaseURL == "")
     }
@@ -564,17 +565,19 @@ struct APIConfigurationTests {
     @Test("APIConfiguration can switch environments")
     func testEnvironmentSwitching() async throws {
         let config = APIConfiguration()
+        config.reset()  // Reset to default state for testing
         
-        config.currentEnvironment = .development
+        config.currentEnvironment = APIConfiguration.Environment.development
         #expect(config.baseURL == "https://localhost:5173")
         
-        config.currentEnvironment = .production
+        config.currentEnvironment = APIConfiguration.Environment.production
         #expect(config.baseURL == "https://api.hamrah.app")
     }
     
     @Test("APIConfiguration handles custom URLs with HTTPS enforcement")
     func testCustomURLHTTPSEnforcement() async throws {
         let config = APIConfiguration()
+        config.reset()  // Reset to default state for testing
         
         config.setCustomURL("example.com")
         #expect(config.baseURL == "https://example.com")
