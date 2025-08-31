@@ -2,7 +2,7 @@ import SwiftUI
 
 struct APIConfigurationView: View {
     @Environment(\.presentationMode) var presentationMode
-    @StateObject private var configuration = APIConfiguration.shared
+    @State private var configuration = APIConfiguration.shared
     @State private var customURLText: String = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
