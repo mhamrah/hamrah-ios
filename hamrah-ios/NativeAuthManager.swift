@@ -37,6 +37,15 @@ class NativeAuthManager: NSObject, ObservableObject {
         let picture: String?
         let authMethod: String
         let createdAt: String
+        
+        enum CodingKeys: String, CodingKey {
+            case id
+            case email
+            case name
+            case picture
+            case authMethod = "auth_method"
+            case createdAt = "created_at"
+        }
     }
     
     struct AuthResponse: Codable {
