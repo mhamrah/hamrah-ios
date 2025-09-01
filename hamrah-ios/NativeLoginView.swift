@@ -13,6 +13,7 @@ struct NativeLoginView: View {
     @State private var email = ""
     @State private var showingPasskeyLogin = false
     @State private var showingEmailInput = false
+    @State private var showingWebAuthnSignUp = false
     @State private var hasPasskeysAvailable = false
     @State private var checkedPasskeyAvailability = false
     
@@ -147,16 +148,25 @@ struct NativeLoginView: View {
             
             Spacer()
             
-            // Footer
-            VStack(spacing: 8) {
-                Text("Secure authentication")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            // Footer with Sign Up Option
+            VStack(spacing: 12) {
+                Button("Create Account with Passkey") {
+                    showingWebAuthnSignUp = true
+                }
+                .font(.subheadline)
+                .foregroundColor(.purple)
+                .disabled(authManager.isLoading)
                 
-                Text("Your data is protected and synced across devices")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+                VStack(spacing: 8) {
+                    Text("Secure authentication")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Text("Your data is protected and synced across devices")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
         }
         .padding(.horizontal, 32)
@@ -168,6 +178,10 @@ struct NativeLoginView: View {
                 }
                 showingEmailInput = false
             }
+        }
+        .sheet(isPresented: $showingWebAuthnSignUp) {
+            WebAuthnSignUpView()
+                .environmentObject(authManager)
         }
         .onAppear {
             if !checkedPasskeyAvailability {

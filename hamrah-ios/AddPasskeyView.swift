@@ -151,7 +151,8 @@ struct AddPasskeyView: View {
             endpoint: "/api/webauthn/register/begin",
             body: body,
             accessToken: accessToken,
-            responseType: WebAuthnBeginRegistrationResponse.self
+            responseType: WebAuthnBeginRegistrationResponse.self,
+            customBaseURL: APIConfiguration.shared.webAppBaseURL
         )
     }
     
@@ -197,7 +198,8 @@ struct AddPasskeyView: View {
             endpoint: "/api/webauthn/register/complete",
             body: body,
             accessToken: accessToken,
-            responseType: APIResponse.self
+            responseType: APIResponse.self,
+            customBaseURL: APIConfiguration.shared.webAppBaseURL
         )
     }
 }

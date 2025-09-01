@@ -18,9 +18,11 @@ class SecureAPIService: ObservableObject {
         method: HTTPMethod = .GET,
         body: [String: Any]? = nil,
         accessToken: String?,
-        responseType: T.Type
+        responseType: T.Type,
+        customBaseURL: String? = nil
     ) async throws -> T {
-        let url = URL(string: "\(baseURL)\(endpoint)")!
+        let targetBaseURL = customBaseURL ?? baseURL
+        let url = URL(string: "\(targetBaseURL)\(endpoint)")!
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -86,14 +88,16 @@ class SecureAPIService: ObservableObject {
     func get<T: Codable>(
         endpoint: String,
         accessToken: String?,
-        responseType: T.Type
+        responseType: T.Type,
+        customBaseURL: String? = nil
     ) async throws -> T {
         return try await makeSecureRequest(
             endpoint: endpoint,
             method: .GET,
             body: nil,
             accessToken: accessToken,
-            responseType: responseType
+            responseType: responseType,
+            customBaseURL: customBaseURL
         )
     }
     
@@ -101,14 +105,16 @@ class SecureAPIService: ObservableObject {
         endpoint: String,
         body: [String: Any],
         accessToken: String?,
-        responseType: T.Type
+        responseType: T.Type,
+        customBaseURL: String? = nil
     ) async throws -> T {
         return try await makeSecureRequest(
             endpoint: endpoint,
             method: .POST,
             body: body,
             accessToken: accessToken,
-            responseType: responseType
+            responseType: responseType,
+            customBaseURL: customBaseURL
         )
     }
     

@@ -17,6 +17,17 @@ class APIConfiguration {
                 return "" // Will be set by user
             }
         }
+        
+        var webAppBaseURL: String {
+            switch self {
+            case .production:
+                return "https://hamrah.app" // WebAuthn operations go to web app
+            case .development:
+                return "https://localhost:5173" // Same for development
+            case .custom:
+                return "" // Will be set by user
+            }
+        }
     }
     
     static let shared = APIConfiguration()
@@ -64,6 +75,25 @@ class APIConfiguration {
             if customBaseURL.isEmpty {
                 return Environment.production.baseURL // Fallback to production
             }
+            // Ensure HTTPS is used
+            if customBaseURL.hasPrefix("http://") {
+                return customBaseURL.replacingOccurrences(of: "http://", with: "https://")
+            } else if !customBaseURL.hasPrefix("https://") {
+                return "https://\(customBaseURL)"
+            }
+            return customBaseURL
+        }
+    }
+    
+    var webAppBaseURL: String {
+        switch currentEnvironment {
+        case .production, .development:
+            return currentEnvironment.webAppBaseURL
+        case .custom:
+            if customBaseURL.isEmpty {
+                return Environment.production.webAppBaseURL // Fallback to production web app
+            }
+            // For custom environment, assume same base URL for web app
             // Ensure HTTPS is used
             if customBaseURL.hasPrefix("http://") {
                 return customBaseURL.replacingOccurrences(of: "http://", with: "https://")

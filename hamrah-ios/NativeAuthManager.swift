@@ -21,6 +21,10 @@ class NativeAuthManager: NSObject, ObservableObject {
     var baseURL: String {
         APIConfiguration.shared.baseURL
     }
+    
+    var webAppBaseURL: String {
+        APIConfiguration.shared.webAppBaseURL
+    }
     @Published var accessToken: String?
     
     // Secure API service with App Attestation
@@ -210,7 +214,8 @@ class NativeAuthManager: NSObject, ObservableObject {
             let response = try await secureAPI.get(
                 endpoint: "/api/webauthn/credentials",
                 accessToken: token,
-                responseType: PasskeyCredentialsResponse.self
+                responseType: PasskeyCredentialsResponse.self,
+                customBaseURL: webAppBaseURL
             )
             
             let hasPasskeys = response.success && !response.credentials.isEmpty
@@ -295,7 +300,8 @@ class NativeAuthManager: NSObject, ObservableObject {
             endpoint: "/api/webauthn/authenticate/begin",
             body: body,
             accessToken: nil, // No auth needed for begin authentication
-            responseType: WebAuthnBeginResponse.self
+            responseType: WebAuthnBeginResponse.self,
+            customBaseURL: webAppBaseURL
         )
     }
     
@@ -339,7 +345,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         
         // Note: This method needs to handle Set-Cookie headers manually since SecureAPI doesn't support it yet
         // TODO: Update SecureAPI to support cookie handling for this specific case
-        let url = URL(string: "\(baseURL)/api/webauthn/authenticate/complete")!
+        let url = URL(string: "\(webAppBaseURL)/api/webauthn/authenticate/complete")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -527,7 +533,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         guard let token = accessToken else { return false }
         
         // Try to validate with a backend endpoint that we know exists
-        let url = URL(string: "\(baseURL)/api/webauthn/credentials")!
+        let url = URL(string: "\(webAppBaseURL)/api/webauthn/credentials")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
