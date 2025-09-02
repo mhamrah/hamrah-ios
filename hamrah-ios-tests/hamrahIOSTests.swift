@@ -402,7 +402,7 @@ struct ManualLoginOptionsTests {
                 "id": "test-id",
                 "email": "test@example.com", 
                 "name": "Test User",
-                "authMethod": "google",
+                "auth_method": "google",
                 "createdAt": "2023-01-01T00:00:00Z"
             },
             "accessToken": "test-token-1"
@@ -417,7 +417,7 @@ struct ManualLoginOptionsTests {
                 "id": "test-id",
                 "email": "test@example.com",
                 "name": "Test User", 
-                "authMethod": "apple",
+                "auth_method": "apple",
                 "createdAt": "2023-01-01T00:00:00Z"
             },
             "access_token": "test-token-2"
@@ -432,7 +432,7 @@ struct ManualLoginOptionsTests {
                 "id": "test-id",
                 "email": "test@example.com",
                 "name": "Test User",
-                "authMethod": "passkey", 
+                "auth_method": "passkey", 
                 "createdAt": "2023-01-01T00:00:00Z"
             },
             "token": "test-token-3"
@@ -470,7 +470,7 @@ struct AccountCreationTests {
                 "email": "newuser@example.com",
                 "name": "New User",
                 "picture": "https://example.com/picture.jpg",
-                "authMethod": "google",
+                "auth_method": "google",
                 "createdAt": "2023-12-01T00:00:00Z"
             },
             "accessToken": "new-account-token",
