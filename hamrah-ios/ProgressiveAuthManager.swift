@@ -155,12 +155,17 @@ class ProgressiveAuthManager: ObservableObject {
     // MARK: - Completion States
     
     func completeAuthentication() async {
+        print("🔍 ProgressiveAuthManager: completeAuthentication() called")
+        print("🔍 ProgressiveAuthManager: Current state before: \(currentState)")
+        
         await MainActor.run {
+            print("🔍 ProgressiveAuthManager: Setting state to .authenticated")
             currentState = .authenticated
             isLoading = false
             errorMessage = nil
         }
         
+        print("🔍 ProgressiveAuthManager: Current state after: \(currentState)")
         print("✅ Progressive authentication completed successfully")
     }
     

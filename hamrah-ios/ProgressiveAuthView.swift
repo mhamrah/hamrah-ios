@@ -24,23 +24,53 @@ struct ProgressiveAuthView: View {
             switch progressiveAuth.currentState {
             case .checking, .refreshingToken:
                 LoadingView(message: progressiveAuth.currentState == .checking ? "Checking authentication..." : "Refreshing session...")
+                    .onAppear {
+                        print("🔍 UI: Showing LoadingView - state: \(progressiveAuth.currentState)")
+                    }
                 
             case .biometricRequired:
                 BiometricAuthPromptView(progressiveAuth: progressiveAuth)
+                    .onAppear {
+                        print("🔍 UI: Showing BiometricAuthPromptView")
+                    }
                 
             case .passkeyAvailable:
                 PasskeyAutoLoginView(progressiveAuth: progressiveAuth)
+                    .onAppear {
+                        print("🔍 UI: Showing PasskeyAutoLoginView")
+                    }
                 
             case .manualLogin, .failed:
                 NativeLoginView()
                     .environmentObject(authManager)
                     .environmentObject(biometricManager)
+                    .onAppear {
+                        print("🔍 UI: Showing NativeLoginView - state: \(progressiveAuth.currentState)")
+                    }
                 
             case .authenticated, .validToken:
                 ContentView()
                     .environmentObject(authManager)
                     .environmentObject(biometricManager)
+                    .onAppear {
+                        print("🔍 UI: Showing ContentView - state: \(progressiveAuth.currentState)")
+                        print("🔍 UI: authManager.isAuthenticated = \(authManager.isAuthenticated)")
+                    }
             }
+        }
+        .overlay(alignment: .topTrailing) {
+            // Debug overlay - remove this in production
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("State: \(String(describing: progressiveAuth.currentState))")
+                Text("Auth: \(authManager.isAuthenticated ? "✅" : "❌")")
+                Text("Complete: \(progressiveAuth.isProgressiveAuthComplete ? "✅" : "❌")")
+            }
+            .font(.caption)
+            .padding(8)
+            .background(Color.black.opacity(0.7))
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            .padding()
         }
         .onAppear {
             Task {
@@ -48,15 +78,23 @@ struct ProgressiveAuthView: View {
             }
         }
         .onChange(of: authManager.isAuthenticated) { _, isAuthenticated in
+            print("🔍 ProgressiveAuthView: authManager.isAuthenticated changed to \(isAuthenticated)")
+            print("🔍 ProgressiveAuthView: progressiveAuth.currentState = \(progressiveAuth.currentState)")
+            print("🔍 ProgressiveAuthView: progressiveAuth.isProgressiveAuthComplete = \(progressiveAuth.isProgressiveAuthComplete)")
+            
             if isAuthenticated && !progressiveAuth.isProgressiveAuthComplete {
+                print("🔍 ProgressiveAuthView: Calling completeAuthentication()")
                 Task {
                     await progressiveAuth.completeAuthentication()
                 }
             } else if !isAuthenticated {
+                print("🔍 ProgressiveAuthView: User logged out, calling handleLogout()")
                 // User logged out, handle logout properly
                 Task {
                     await progressiveAuth.handleLogout()
                 }
+            } else if isAuthenticated && progressiveAuth.isProgressiveAuthComplete {
+                print("🔍 ProgressiveAuthView: Already authenticated and complete")
             }
         }
     }
