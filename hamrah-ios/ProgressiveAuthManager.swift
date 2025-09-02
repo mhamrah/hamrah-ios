@@ -53,7 +53,12 @@ class ProgressiveAuthManager: ObservableObject {
             if authManager.isTokenExpiringSoon() {
                 await attemptTokenRefresh()
             } else {
-                await completeAuthentication()
+                await MainActor.run {
+                    currentState = .validToken
+                    isLoading = false
+                    errorMessage = nil
+                }
+                print("✅ Valid token found, authentication already complete")
                 return
             }
         } else {
@@ -218,7 +223,7 @@ class ProgressiveAuthManager: ObservableObject {
     }
     
     var isProgressiveAuthComplete: Bool {
-        return currentState == .authenticated
+        return currentState == .authenticated || currentState == .validToken
     }
     
     var shouldShowBiometricPrompt: Bool {
