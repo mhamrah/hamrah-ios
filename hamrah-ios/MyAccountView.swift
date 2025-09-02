@@ -90,7 +90,7 @@ struct MyAccountView: View {
                     AccountInfoRow(label: "Email", value: user.email)
                     AccountInfoRow(label: "Name", value: user.name ?? "Not provided")
                     AccountInfoRow(label: "Auth Method", value: user.authMethod.capitalized)
-                    AccountInfoRow(label: "Member Since", value: formatDate(user.createdAt))
+                    AccountInfoRow(label: "Member Since", value: formatDate(user.createdAt ?? ""))
                 }
             }
             .padding()
