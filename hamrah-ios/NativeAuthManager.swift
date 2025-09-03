@@ -237,35 +237,6 @@ class NativeAuthManager: NSObject, ObservableObject {
         }
     }
     
-    func signInWithPasskeyAutomatic() async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            print("🔐 Starting automatic Passkey authentication...")
-            
-            // Step 1: Begin WebAuthn authentication without email (for resident keys)
-            let beginOptions = try await beginWebAuthnAuthentication(email: nil)
-            
-            guard let options = beginOptions.options else {
-                throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No authentication options received"])
-            }
-            
-            let challengeId = options.challengeId
-            
-            // Step 2: Perform platform authentication
-            let assertion = try await performPlatformAuthentication(options: options)
-            
-            // Step 3: Complete authentication with backend
-            try await completeWebAuthnAuthentication(assertion: assertion, challengeId: challengeId)
-            
-        } catch {
-            errorMessage = "Passkey authentication failed: \(error.localizedDescription)"
-            print("❌ Automatic Passkey error: \(error)")
-        }
-        
-        isLoading = false
-    }
     
     func signInWithPasskey(email: String) async {
         isLoading = true
@@ -453,16 +424,6 @@ class NativeAuthManager: NSObject, ObservableObject {
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        // Debug: Print response details
-        DebugLogger.shared.log("🔍 Auth Response Debug:")
-        if let httpResponse = response as? HTTPURLResponse {
-            DebugLogger.shared.log("  Status Code: \(httpResponse.statusCode)")
-            DebugLogger.shared.log("  Headers: \(httpResponse.allHeaderFields)")
-        }
-        DebugLogger.shared.log("  Data Length: \(data.count)")
-        if let responseString = String(data: data, encoding: .utf8) {
-            DebugLogger.shared.log("  Response Body: \(responseString)")
-        }
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
@@ -480,19 +441,12 @@ class NativeAuthManager: NSObject, ObservableObject {
             throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse server response: \(error.localizedDescription)"])
         }
         
-        print("🔍 Parsed AuthResponse:")
-        print("  Success: \(authResponse.success)")
-        print("  User: \(authResponse.user?.email ?? "nil")")
-        print("  Access Token: \(authResponse.accessToken != nil ? "present" : "nil")")
-        print("  Error: \(authResponse.error ?? "nil")")
         
         if authResponse.success, let user = authResponse.user, let token = authResponse.accessToken {
-            print("🔍 Setting authentication state...")
             await MainActor.run {
                 self.currentUser = user
                 self.accessToken = token
                 self.isAuthenticated = true
-                print("🔍 Auth state updated on main thread - isAuthenticated: \(self.isAuthenticated)")
             }
             
             // Store refresh token if provided
@@ -518,13 +472,7 @@ class NativeAuthManager: NSObject, ObservableObject {
                 }
             }
             
-            print("✅ Backend authentication successful - User: \(user.email), Auth State: \(self.isAuthenticated)")
-            
-            // Force UI update on next run loop to ensure all observers are notified
-            DispatchQueue.main.async {
-                self.objectWillChange.send()
-                print("🔍 Sent objectWillChange notification")
-            }
+            print("✅ Backend authentication successful - User: \(user.email)")
         } else {
             print("❌ Auth Response Validation Failed:")
             print("  Success: \(authResponse.success)")
@@ -678,22 +626,10 @@ class NativeAuthManager: NSObject, ObservableObject {
         let dayAgo = Date().timeIntervalSince1970 - (24 * 60 * 60) // 24 hours
         
         if authTimestamp > 0 && authTimestamp < dayAgo {
-            print("🔍 Auth token is stale (older than 24 hours), clearing auth state")
             clearStoredAuth()
             isAuthenticated = false
             currentUser = nil
             accessToken = nil
-        }
-        
-        // Debug loaded auth state
-        print("🔍 Loaded Auth State:")
-        print("  Is Authenticated: \(isAuthenticated)")
-        print("  Access Token: \(accessToken != nil ? "present" : "nil")")
-        print("  Current User: \(currentUser?.email ?? "nil")")
-        if authTimestamp > 0 {
-            print("  Auth Timestamp: \(Date(timeIntervalSince1970: authTimestamp))")
-        } else {
-            print("  Auth Timestamp: none")
         }
     }
     
@@ -792,6 +728,12 @@ class NativeAuthManager: NSObject, ObservableObject {
         accessToken = nil
         clearStoredAuth()
         print("🚪 User logged out")
+    }
+    
+    // MARK: - Test Support
+    
+    func loadAuthenticationState() async {
+        loadStoredAuth()
     }
 }
 

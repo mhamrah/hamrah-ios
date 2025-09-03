@@ -117,7 +117,7 @@ class WebAuthnTests: XCTestCase {
         }
     }
     
-    func testSignInWithPasskeyAutomaticHandlesErrors() async throws {
+    func testSignInWithPasskeyHandlesErrors() async throws {
         await MainActor.run {
             authManager.isLoading = false
             authManager.errorMessage = nil
@@ -125,7 +125,7 @@ class WebAuthnTests: XCTestCase {
         
         // This will likely fail because we can't mock the WebAuthn API calls easily
         // But we can test that the function handles the error gracefully
-        await authManager.signInWithPasskeyAutomatic()
+        await authManager.signInWithPasskey(email: "test@example.com")
         
         await MainActor.run {
             // Should set loading to false after completion (whether success or failure)
