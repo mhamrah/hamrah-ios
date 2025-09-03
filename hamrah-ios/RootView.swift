@@ -12,12 +12,9 @@ struct RootView: View {
     @StateObject private var biometricManager = BiometricAuthManager()
     
     var body: some View {
-        ProgressiveAuthView(
-            authManager: nativeAuthManager,
-            biometricManager: biometricManager
-        )
-        .environmentObject(nativeAuthManager)
-        .environmentObject(biometricManager)
+        ProgressiveAuthView()
+            .environmentObject(nativeAuthManager)
+            .environmentObject(biometricManager)
     }
 }
 

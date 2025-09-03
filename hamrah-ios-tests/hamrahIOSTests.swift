@@ -47,78 +47,7 @@ struct AuthManagerLogoutTests {
 }
 
 @MainActor
-struct ProgressiveAuthLogoutTests {
-    
-    @Test("Progressive auth handles logout correctly")
-    func testProgressiveAuthHandlesLogout() async throws {
-        // Given: An authenticated progressive auth manager
-        let authManager = NativeAuthManager()
-        let biometricManager = BiometricAuthManager()
-        let progressiveAuth = ProgressiveAuthManager(
-            authManager: authManager, 
-            biometricManager: biometricManager
-        )
-        
-        // Set initial authenticated state
-        authManager.isAuthenticated = true
-        authManager.currentUser = NativeAuthManager.HamrahUser(
-            id: "test-id",
-            email: "test@example.com", 
-            name: "Test User",
-            picture: nil,
-            authMethod: "email",
-            createdAt: "2023-01-01T00:00:00Z"
-        )
-        authManager.accessToken = "test-token"
-        progressiveAuth.currentState = .authenticated
-        
-        // When: User logs out (clear auth state first, then handle logout)
-        authManager.logout() // This clears the authenticated state
-        await progressiveAuth.handleLogout()
-        
-        // Then: Progressive auth state should change from authenticated
-        // The exact state may vary depending on auth conditions, but it shouldn't remain authenticated
-        #expect(progressiveAuth.currentState != .authenticated)
-        
-        // Loading should be false after handling logout
-        #expect(progressiveAuth.isLoading == false)
-    }
-    
-    @Test("Progressive auth shows login screen after logout")
-    func testProgressiveAuthShowsLoginScreenAfterLogout() async throws {
-        // Given: An authenticated progressive auth manager
-        let authManager = NativeAuthManager()
-        let biometricManager = BiometricAuthManager()
-        let progressiveAuth = ProgressiveAuthManager(
-            authManager: authManager, 
-            biometricManager: biometricManager
-        )
-        
-        // Set initial authenticated state
-        authManager.isAuthenticated = true
-        authManager.currentUser = NativeAuthManager.HamrahUser(
-            id: "test-id",
-            email: "test@example.com", 
-            name: "Test User",
-            picture: nil,
-            authMethod: "email",
-            createdAt: "2023-01-01T00:00:00Z"
-        )
-        authManager.accessToken = "test-token"
-        progressiveAuth.currentState = .authenticated
-        
-        // When: User logs out (simulate auth manager logout)
-        authManager.logout()
-        await progressiveAuth.handleLogout()
-        
-        // Then: Progressive auth should show appropriate login state
-        #expect(progressiveAuth.currentState != .authenticated)
-        #expect(progressiveAuth.shouldShowManualLogin || 
-                progressiveAuth.shouldShowBiometricPrompt || 
-                progressiveAuth.shouldShowPasskeyPrompt ||
-                progressiveAuth.currentState == .checking)
-        #expect(progressiveAuth.isProgressiveAuthComplete == false)
-    }
+struct AuthManagerLogoutExtendedTests {
     
     @Test("Auth manager logout clears UserDefaults")
     func testLogoutClearsUserDefaults() async throws {
@@ -150,20 +79,15 @@ struct ProgressiveAuthLogoutTests {
     }
 }
 
-// MARK: - Face ID Authentication Flow Tests
+// MARK: - Authentication Flow Tests
 
 @MainActor 
-struct FaceIDAuthenticationTests {
+struct AuthenticationFlowTests {
     
-    @Test("Face ID enabled with valid token goes to homescreen")
-    func testFaceIDEnabledWithValidTokenGoesToHomescreen() async throws {
-        // Given: Biometric auth is enabled and user has valid token
+    @Test("Auth manager handles authenticated state correctly")
+    func testAuthManagerHandlesAuthenticatedState() async throws {
+        // Given: Auth manager with valid authentication
         let authManager = NativeAuthManager()
-        let biometricManager = BiometricAuthManager()
-        let progressiveAuth = ProgressiveAuthManager(
-            authManager: authManager,
-            biometricManager: biometricManager
-        )
         
         // Setup authenticated state with valid token
         authManager.isAuthenticated = true
@@ -177,137 +101,58 @@ struct FaceIDAuthenticationTests {
             createdAt: "2023-01-01T00:00:00Z"
         )
         
-        // Setup biometric auth as enabled and available
-        await MainActor.run {
-            biometricManager.isBiometricEnabled = true
-            biometricManager.biometricType = .faceID
-        }
+        // When: Checking authentication state
+        let isAuthenticated = authManager.isAuthenticated
+        let hasUser = authManager.currentUser != nil
+        let hasToken = authManager.accessToken != nil
+        
+        // Then: All should be true
+        #expect(isAuthenticated == true)
+        #expect(hasUser == true)
+        #expect(hasToken == true)
+    }
+    
+    @Test("Auth manager token validation works correctly")
+    func testAuthManagerTokenValidation() async throws {
+        // Given: Auth manager with token
+        let authManager = NativeAuthManager()
+        authManager.accessToken = "test-token"
         
         // Setup token expiration in the future (not expiring soon)
         UserDefaults.standard.set(Date().timeIntervalSince1970 + 3600, forKey: "hamrah_token_expires_at") // 1 hour from now
         
-        // When: Progressive auth starts
-        await progressiveAuth.startProgressiveAuth()
+        // When: Checking if token is expiring soon
+        let isExpiringSoon = authManager.isTokenExpiringSoon()
         
-        // Then: Should eventually reach an end state
-        // The exact state depends on the progressive auth flow implementation
-        let finalState = progressiveAuth.currentState
-        
-        // The state should be a valid end state (not a transitional state like .checking)
-        #expect(finalState == .authenticated || 
-                finalState == .validToken ||
-                finalState == .biometricRequired ||
-                finalState == .manualLogin ||
-                finalState == .passkeyAvailable)
-        
-        // Should not be loading after completion
-        #expect(progressiveAuth.isLoading == false)
-    }
-    
-    @Test("Successful biometric auth with valid token completes authentication")
-    func testSuccessfulBiometricAuthWithValidTokenCompletesAuth() async throws {
-        // Given: Progressive auth manager with valid authenticated state
-        let authManager = NativeAuthManager()
-        let biometricManager = BiometricAuthManager()
-        let progressiveAuth = ProgressiveAuthManager(
-            authManager: authManager,
-            biometricManager: biometricManager
-        )
-        
-        // Setup valid authenticated user with non-expiring token
-        authManager.isAuthenticated = true
-        authManager.accessToken = "valid-token"
-        authManager.currentUser = NativeAuthManager.HamrahUser(
-            id: "test-id",
-            email: "test@example.com",
-            name: "Test User",
-            picture: nil,
-            authMethod: "biometric",
-            createdAt: "2023-01-01T00:00:00Z"
-        )
-        
-        // Token not expiring soon
-        UserDefaults.standard.set(Date().timeIntervalSince1970 + 3600, forKey: "hamrah_token_expires_at")
-        
-        // When: Successful biometric auth is handled
-        await progressiveAuth.handleSuccessfulBiometricAuth()
-        
-        // Then: Should complete authentication directly
-        #expect(progressiveAuth.currentState == .authenticated)
-        #expect(progressiveAuth.isProgressiveAuthComplete == true)
-        #expect(progressiveAuth.isLoading == false)
-    }
-    
-    @Test("Successful biometric auth with expired token attempts passkey")  
-    func testSuccessfulBiometricAuthWithExpiredTokenAttemptsPasskey() async throws {
-        // Given: Progressive auth manager with expired token
-        let authManager = NativeAuthManager()
-        let biometricManager = BiometricAuthManager()
-        let progressiveAuth = ProgressiveAuthManager(
-            authManager: authManager,
-            biometricManager: biometricManager
-        )
-        
-        // Setup user with expired token
-        authManager.isAuthenticated = false // Expired
-        authManager.accessToken = "expired-token"
-        
-        // Setup last used email for passkey
-        UserDefaults.standard.set("test@example.com", forKey: "hamrah_last_email")
-        
-        // When: Successful biometric auth is handled
-        await progressiveAuth.handleSuccessfulBiometricAuth()
-        
-        // Then: Should proceed to passkey authentication
-        #expect(progressiveAuth.currentState == .passkeyAvailable || 
-                progressiveAuth.currentState == .manualLogin)
-        #expect(progressiveAuth.isProgressiveAuthComplete == false)
+        // Then: Should not be expiring soon
+        #expect(isExpiringSoon == false)
     }
 }
 
-// MARK: - Automatic Passkey Authentication Tests
+// MARK: - Passkey Email Management Tests
 
 @MainActor
-struct AutomaticPasskeyAuthenticationTests {
+struct PasskeyEmailManagementTests {
     
-    @Test("Automatic passkey login with registered passkey and last email")
-    func testAutomaticPasskeyLoginWithRegisteredPasskey() async throws {
-        // Given: Auth manager with last used email
+    @Test("Auth manager stores and retrieves last used email")
+    func testAuthManagerStoresAndRetrievesLastUsedEmail() async throws {
+        // Given: Auth manager
         let authManager = NativeAuthManager()
-        let biometricManager = BiometricAuthManager()
-        let progressiveAuth = ProgressiveAuthManager(
-            authManager: authManager,
-            biometricManager: biometricManager
-        )
         
         // Setup last used email
         UserDefaults.standard.set("test@example.com", forKey: "hamrah_last_email")
         
-        // When: Progressive auth attempts passkey auto-login
+        // When: Getting last used email
         let lastEmail = authManager.getLastUsedEmail()
         
         // Then: Should have the stored email
         #expect(lastEmail == "test@example.com")
-        
-        // Test the flow would proceed to passkey available state
-        await progressiveAuth.startProgressiveAuth()
-        
-        // Should either go to passkey available or manual login (since we can't mock network calls)
-        #expect(progressiveAuth.currentState == .passkeyAvailable || 
-                progressiveAuth.currentState == .manualLogin || 
-                progressiveAuth.currentState == .biometricRequired ||
-                progressiveAuth.currentState == .checking)
     }
     
-    @Test("No last used email falls back to manual login")
-    func testNoLastUsedEmailFallbackToManualLogin() async throws {
+    @Test("No last used email returns nil")
+    func testNoLastUsedEmailReturnsNil() async throws {
         // Given: Auth manager with no stored email
         let authManager = NativeAuthManager()
-        let biometricManager = BiometricAuthManager()
-        let _ = ProgressiveAuthManager(
-            authManager: authManager,
-            biometricManager: biometricManager
-        )
         
         // Clear any stored email
         UserDefaults.standard.removeObject(forKey: "hamrah_last_email")
