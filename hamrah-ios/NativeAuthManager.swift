@@ -208,6 +208,11 @@ class NativeAuthManager: NSObject, ObservableObject {
             return false 
         }
         
+        guard let userId = currentUser?.id else {
+            print("🔍 No user ID available for passkey check")
+            return false
+        }
+        
         do {
             struct PasskeyCredentialsResponse: Codable {
                 let success: Bool
@@ -221,7 +226,7 @@ class NativeAuthManager: NSObject, ObservableObject {
             }
             
             let response = try await secureAPI.get(
-                endpoint: "/api/webauthn/credentials",
+                endpoint: "/api/webauthn/users/\(userId)/credentials",
                 accessToken: token,
                 responseType: PasskeyCredentialsResponse.self,
                 customBaseURL: webAppBaseURL
@@ -489,8 +494,13 @@ class NativeAuthManager: NSObject, ObservableObject {
     func validateAccessToken() async -> Bool {
         guard let token = accessToken else { return false }
         
+        guard let userId = currentUser?.id else { 
+            print("🔍 No user ID available for token validation")
+            return false 
+        }
+        
         // Try to validate with a backend endpoint that we know exists
-        let url = URL(string: "\(webAppBaseURL)/api/webauthn/credentials")!
+        let url = URL(string: "\(webAppBaseURL)/api/webauthn/users/\(userId)/credentials")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
