@@ -5,8 +5,8 @@
 //  Add Passkey view for iOS app
 //
 
-import SwiftUI
 import AuthenticationServices
+import SwiftUI
 
 struct AddPasskeyView: View {
     @Environment(\.presentationMode) var presentationMode
@@ -14,32 +14,34 @@ struct AddPasskeyView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     let onPasskeyAdded: () -> Void
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
                 Spacer()
-                
+
                 // Icon
                 Image(systemName: "key.fill")
                     .font(.system(size: 60))
                     .foregroundColor(.blue)
-                
+
                 // Title and Description
                 VStack(spacing: 16) {
                     Text("Add Passkey")
                         .font(.title)
                         .fontWeight(.bold)
-                    
-                    Text("Passkeys provide secure, passwordless authentication using your device's biometrics or PIN.")
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
+
+                    Text(
+                        "Passkeys provide secure, passwordless authentication using your device's biometrics or PIN."
+                    )
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
                 }
-                
+
                 Spacer()
-                
+
                 // Add Passkey Button
                 Button(action: addPasskey) {
                     HStack {
@@ -61,22 +63,24 @@ struct AddPasskeyView: View {
                     .cornerRadius(12)
                 }
                 .disabled(isLoading)
-                
+
                 // Cancel Button
                 Button("Cancel") {
                     presentationMode.wrappedValue.dismiss()
                 }
                 .foregroundColor(.secondary)
                 .disabled(isLoading)
-                
+
                 Spacer()
             }
             .padding()
             .navigationTitle("Add Passkey")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing: Button("Done") {
-                presentationMode.wrappedValue.dismiss()
-            }.disabled(isLoading))
+            .navigationBarItems(
+                trailing: Button("Done") {
+                    presentationMode.wrappedValue.dismiss()
+                }.disabled(isLoading)
+            )
             .alert("Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") {
                     errorMessage = nil
@@ -86,27 +90,27 @@ struct AddPasskeyView: View {
             }
         }
     }
-    
+
     private func addPasskey() {
         // Debug authentication state
         print("🔍 Authentication Debug:")
         print("  Current User: \(authManager.currentUser?.email ?? "nil")")
         print("  Access Token: \(authManager.accessToken != nil ? "present" : "nil")")
         print("  Is Authenticated: \(authManager.isAuthenticated)")
-        
+
         guard let user = authManager.currentUser else {
             errorMessage = "No user found. Please sign in again."
             return
         }
-        
+
         guard let accessToken = authManager.accessToken else {
             errorMessage = "No access token found. Please sign in again."
             return
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         Task {
             do {
                 try await registerPasskey(email: user.email, accessToken: accessToken)
@@ -123,30 +127,39 @@ struct AddPasskeyView: View {
             }
         }
     }
-    
+
     private func registerPasskey(email: String, accessToken: String) async throws {
         // Step 1: Begin WebAuthn registration
-        let beginOptions = try await beginWebAuthnRegistration(email: email, accessToken: accessToken)
-        
+        let beginOptions = try await beginWebAuthnRegistration(
+            email: email, accessToken: accessToken)
+
         guard let options = beginOptions.options else {
-            throw NSError(domain: "WebAuthn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No registration options received"])
+            throw NSError(
+                domain: "WebAuthn", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "No registration options received"])
         }
-        
+
         let challengeId = options.challengeId
-        
+
         // Step 2: Perform platform registration
         let attestation = try await performPlatformRegistration(options: options)
-        
-        // Step 3: Complete registration with backend
-        try await completeWebAuthnRegistration(attestation: attestation, challengeId: challengeId, email: email, accessToken: accessToken)
+
+        // Step 3: Verify registration with backend
+        try await completeWebAuthnRegistration(
+            attestation: attestation, challengeId: challengeId, email: email,
+            accessToken: accessToken)
     }
-    
-    private func beginWebAuthnRegistration(email: String, accessToken: String) async throws -> WebAuthnBeginRegistrationResponse {
+
+    private func beginWebAuthnRegistration(email: String, accessToken: String) async throws
+        -> WebAuthnBeginRegistrationResponse
+    {
         let body = [
+            "userId": authManager.currentUser?.id ?? "",
             "email": email,
-            "name": authManager.currentUser?.name ?? ""
+            "displayName": authManager.currentUser?.name ?? email,
+            "label": "iOS Device",
         ]
-        
+
         return try await SecureAPIService.shared.post(
             endpoint: "/api/webauthn/register/begin",
             body: body,
@@ -155,47 +168,58 @@ struct AddPasskeyView: View {
             customBaseURL: APIConfiguration.shared.webAppBaseURL
         )
     }
-    
-    private func performPlatformRegistration(options: PublicKeyCredentialCreationOptions) async throws -> ASAuthorizationPlatformPublicKeyCredentialRegistration {
+
+    private func performPlatformRegistration(options: PublicKeyCredentialCreationOptions)
+        async throws -> ASAuthorizationPlatformPublicKeyCredentialRegistration
+    {
         let challenge = Data(base64Encoded: options.challenge) ?? Data()
         let userID = Data(base64Encoded: options.user.id) ?? Data()
-        
-        let request = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: options.rp.id)
-            .createCredentialRegistrationRequest(challenge: challenge, name: options.user.name, userID: userID)
-        
+
+        let request = ASAuthorizationPlatformPublicKeyCredentialProvider(
+            relyingPartyIdentifier: options.rp.id
+        )
+        .createCredentialRegistrationRequest(
+            challenge: challenge, name: options.user.name, userID: userID)
+
         return try await withCheckedThrowingContinuation { continuation in
             let controller = ASAuthorizationController(authorizationRequests: [request])
-            
+
             // Store continuation for delegate callback
             PasskeyRegistrationDelegate.shared.setContinuation(continuation)
-            
+
             controller.delegate = PasskeyRegistrationDelegate.shared
             controller.presentationContextProvider = authManager
             controller.performRequests()
         }
     }
-    
-    private func completeWebAuthnRegistration(attestation: ASAuthorizationPlatformPublicKeyCredentialRegistration, challengeId: String, email: String, accessToken: String) async throws {
+
+    private func completeWebAuthnRegistration(
+        attestation: ASAuthorizationPlatformPublicKeyCredentialRegistration, challengeId: String,
+        email: String, accessToken: String
+    ) async throws {
         // Create the response object matching SimpleWebAuthn's RegistrationResponseJSON format
-        let registrationResponseData = [
-            "id": attestation.credentialID.base64EncodedString(),
-            "rawId": attestation.credentialID.base64EncodedString(),
-            "type": "public-key",
-            "response": [
-                "attestationObject": attestation.rawAttestationObject?.base64EncodedString() ?? "",
-                "clientDataJSON": attestation.rawClientDataJSON.base64EncodedString()
-            ]
-        ] as [String: Any]
-        
-        let body = [
-            "response": registrationResponseData,
-            "challengeId": challengeId,
-            "email": email,
-            "name": authManager.currentUser?.name ?? ""
-        ] as [String: Any]
-        
+        let registrationResponseData =
+            [
+                "id": attestation.credentialID.base64EncodedString(),
+                "rawId": attestation.credentialID.base64EncodedString(),
+                "type": "public-key",
+                "response": [
+                    "attestationObject": attestation.rawAttestationObject?.base64EncodedString()
+                        ?? "",
+                    "clientDataJSON": attestation.rawClientDataJSON.base64EncodedString(),
+                ],
+            ] as [String: Any]
+
+        let body =
+            [
+                "response": registrationResponseData,
+                "challengeId": challengeId,
+                // Optional friendly label for server-side storage
+                "label": "iOS Device",
+            ] as [String: Any]
+
         _ = try await SecureAPIService.shared.post(
-            endpoint: "/api/webauthn/register/complete",
+            endpoint: "/api/webauthn/register/verify",
             body: body,
             accessToken: accessToken,
             responseType: APIResponse.self,
@@ -255,23 +279,38 @@ struct PublicKeyCredentialDescriptorForCreation: Codable {
 
 class PasskeyRegistrationDelegate: NSObject, ASAuthorizationControllerDelegate {
     static let shared = PasskeyRegistrationDelegate()
-    
-    private var continuation: CheckedContinuation<ASAuthorizationPlatformPublicKeyCredentialRegistration, Error>?
-    
-    func setContinuation(_ continuation: CheckedContinuation<ASAuthorizationPlatformPublicKeyCredentialRegistration, Error>) {
+
+    private var continuation:
+        CheckedContinuation<ASAuthorizationPlatformPublicKeyCredentialRegistration, Error>?
+
+    func setContinuation(
+        _ continuation: CheckedContinuation<
+            ASAuthorizationPlatformPublicKeyCredentialRegistration, Error
+        >
+    ) {
         self.continuation = continuation
     }
-    
-    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-        if let registration = authorization.credential as? ASAuthorizationPlatformPublicKeyCredentialRegistration {
+
+    func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithAuthorization authorization: ASAuthorization
+    ) {
+        if let registration = authorization.credential
+            as? ASAuthorizationPlatformPublicKeyCredentialRegistration
+        {
             continuation?.resume(returning: registration)
         } else {
-            continuation?.resume(throwing: NSError(domain: "PasskeyRegistration", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid credential type"]))
+            continuation?.resume(
+                throwing: NSError(
+                    domain: "PasskeyRegistration", code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid credential type"]))
         }
         continuation = nil
     }
-    
-    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+
+    func authorizationController(
+        controller: ASAuthorizationController, didCompleteWithError error: Error
+    ) {
         continuation?.resume(throwing: error)
         continuation = nil
     }
