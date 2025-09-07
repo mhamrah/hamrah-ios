@@ -2,179 +2,220 @@
 //  BiometricAuthManager.swift
 //  hamrahIOS
 //
-//  Biometric authentication manager for Face ID/Touch ID support
+//  Cross-platform biometric authentication manager.
+//  iOS / macOS (Touch ID / Face ID / Optic ID). Gracefully degrades when
+//  LocalAuthentication framework or hardware is unavailable.
+//
+//  On macOS devices without Touch ID (or in CI), all biometric operations
+//  report unavailable without throwing, allowing the app to still function.
 //
 
 import Foundation
-import LocalAuthentication
 import SwiftUI
+
+#if canImport(LocalAuthentication)
+    import LocalAuthentication
+#endif
 
 @MainActor
 class BiometricAuthManager: ObservableObject {
     @Published var isBiometricEnabled = false
-    @Published var biometricType: LABiometryType = .none
+    #if canImport(LocalAuthentication)
+        @Published var biometricType: LABiometryType = .none
+    #else
+        // Fallback placeholder when LocalAuthentication isn't present
+        @Published var biometricType: Int = 0
+    #endif
     @Published var isAuthenticating = false
     @Published var errorMessage: String?
-    
-    private let context = LAContext()
+
+    #if canImport(LocalAuthentication)
+        private let context = LAContext()
+    #else
+        private let context: Any? = nil
+    #endif
     private let biometricEnabledKey = "hamrah_biometric_enabled"
-    
+
     init() {
         checkBiometricCapability()
         loadBiometricSettings()
     }
-    
-    // MARK: - Biometric Capability Check
-    
+
+    // MARK: - Capability
+
     private func checkBiometricCapability() {
-        var error: NSError?
-        
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            print("⚠️ Biometric authentication not available: \(error?.localizedDescription ?? "Unknown error")")
-            biometricType = .none
-            return
-        }
-        
-        biometricType = context.biometryType
-        print("✅ Biometric type available: \(biometricTypeString)")
+        #if canImport(LocalAuthentication)
+            var error: NSError?
+            // Attempt evaluation (safe probe)
+            guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+            else {
+                if let e = error {
+                    print("⚠️ Biometrics not available: \(e.localizedDescription)")
+                } else {
+                    print("⚠️ Biometrics not available (unknown reason)")
+                }
+                biometricType = .none
+                return
+            }
+            biometricType = context.biometryType
+            print("✅ Biometric type available: \(biometricTypeString)")
+        #else
+            print(
+                "ℹ️ LocalAuthentication not available on this platform build; disabling biometrics.")
+        #endif
     }
-    
+
+    // MARK: - Computed Helpers
+
     var biometricTypeString: String {
-        switch biometricType {
-        case .faceID:
-            return "Face ID"
-        case .touchID:
-            return "Touch ID"
-        case .opticID:
-            return "Optic ID"
-        case .none:
-            return "None"
-        @unknown default:
-            return "Unknown"
-        }
+        #if canImport(LocalAuthentication)
+            switch biometricType {
+            case .faceID: return "Face ID"
+            case .touchID: return "Touch ID"
+            case .opticID: return "Optic ID"
+            case .none: return "None"
+            @unknown default: return "Unknown"
+            }
+        #else
+            return "Unavailable"
+        #endif
     }
-    
+
     var isAvailable: Bool {
-        return biometricType != .none
+        #if canImport(LocalAuthentication)
+            return biometricType != .none
+        #else
+            return false
+        #endif
     }
-    
+
     // MARK: - Authentication
-    
-    func authenticateWithBiometrics(reason: String = "Authenticate to access your account") async -> Bool {
+
+    func authenticateWithBiometrics(
+        reason: String = "Authenticate to access your account"
+    ) async -> Bool {
         guard isAvailable else {
             errorMessage = "Biometric authentication is not available on this device"
             return false
         }
-        
-        isAuthenticating = true
-        errorMessage = nil
-        
-        do {
-            let success = try await context.evaluatePolicy(
-                .deviceOwnerAuthenticationWithBiometrics,
-                localizedReason: reason
-            )
-            
-            if success {
-                print("✅ Biometric authentication successful")
-                isAuthenticating = false
-                return true
+        #if !canImport(LocalAuthentication)
+            errorMessage = "Biometric framework not present in this build"
+            return false
+        #else
+            isAuthenticating = true
+            errorMessage = nil
+
+            do {
+                let success = try await context.evaluatePolicy(
+                    .deviceOwnerAuthenticationWithBiometrics,
+                    localizedReason: reason
+                )
+                if success {
+                    print("✅ Biometric authentication successful")
+                    isAuthenticating = false
+                    return true
+                }
+            } catch let error as LAError {
+                handleBiometricError(error)
+            } catch {
+                errorMessage = "Biometric authentication failed: \(error.localizedDescription)"
+                print("❌ Biometric authentication error: \(error)")
             }
-        } catch let error as LAError {
-            handleBiometricError(error)
-        } catch {
-            errorMessage = "Biometric authentication failed: \(error.localizedDescription)"
-            print("❌ Biometric authentication error: \(error)")
-        }
-        
-        isAuthenticating = false
-        return false
+
+            isAuthenticating = false
+            return false
+        #endif
     }
-    
-    private func handleBiometricError(_ error: LAError) {
-        switch error.code {
-        case .userCancel:
-            errorMessage = "Authentication was cancelled"
-        case .userFallback:
-            errorMessage = "User chose to use fallback authentication"
-        case .biometryNotAvailable:
-            errorMessage = "Biometric authentication is not available"
-        case .biometryNotEnrolled:
-            errorMessage = "Biometric authentication is not set up. Please set up \(biometricTypeString) in Settings"
-        case .biometryLockout:
-            errorMessage = "Biometric authentication is locked. Please use device passcode"
-        case .authenticationFailed:
-            errorMessage = "Biometric authentication failed. Please try again"
-        case .invalidContext:
-            errorMessage = "Authentication context is invalid"
-        case .notInteractive:
-            errorMessage = "Authentication not interactive"
-        case .passcodeNotSet:
-            errorMessage = "Device passcode is not set"
-        case .systemCancel:
-            errorMessage = "Authentication was cancelled by the system"
-        case .appCancel:
-            errorMessage = "Authentication was cancelled by the app"
-        case .invalidDimensions:
-            errorMessage = "Invalid authentication dimensions"
-#if os(watchOS)
-        case .watchNotAvailable:
-            errorMessage = "Apple Watch is not available for authentication"
-#endif
-        case .biometryDisconnected:
-            errorMessage = "Biometric sensor is disconnected"
-        case .touchIDNotAvailable:
-            errorMessage = "Touch ID is not available on this device"
-        case .touchIDNotEnrolled:
-            errorMessage = "Touch ID is not set up. Please set up Touch ID in Settings"
-        case .touchIDLockout:
-            errorMessage = "Touch ID is locked. Please use device passcode"
-        @unknown default:
-            errorMessage = "Biometric authentication failed with unknown error"
+
+    #if canImport(LocalAuthentication)
+        private func handleBiometricError(_ error: LAError) {
+            switch error.code {
+            case .userCancel:
+                errorMessage = "Authentication was cancelled"
+            case .userFallback:
+                errorMessage = "User chose fallback authentication"
+            case .biometryNotAvailable:
+                errorMessage = "Biometric authentication is not available"
+            case .biometryNotEnrolled:
+                errorMessage = "\(biometricTypeString) is not set up"
+            case .biometryLockout:
+                errorMessage = "Too many attempts. Use device passcode."
+            case .authenticationFailed:
+                errorMessage = "Failed to verify your identity"
+            case .invalidContext:
+                errorMessage = "Authentication context invalid"
+            case .notInteractive:
+                errorMessage = "Authentication not interactive"
+            case .passcodeNotSet:
+                errorMessage = "Device passcode not set"
+            case .systemCancel:
+                errorMessage = "Authentication cancelled by system"
+            case .appCancel:
+                errorMessage = "Authentication cancelled by app"
+            case .invalidDimensions:
+                errorMessage = "Invalid biometric data"
+            #if os(watchOS)
+                case .watchNotAvailable:
+                    errorMessage = "Apple Watch unavailable"
+            #endif
+            case .biometryDisconnected:
+                errorMessage = "Biometric sensor disconnected"
+            case .touchIDNotAvailable:
+                errorMessage = "Touch ID not available"
+            case .touchIDNotEnrolled:
+                errorMessage = "Touch ID not set up"
+            case .touchIDLockout:
+                errorMessage = "Touch ID locked. Use passcode."
+            @unknown default:
+                errorMessage = "Unknown biometric error"
+            }
+            print("❌ Biometric error: \(errorMessage ?? "Unknown")")
         }
-        
-        print("❌ Biometric authentication error: \(errorMessage ?? "Unknown")")
-    }
-    
-    // MARK: - Settings Management
-    
+    #else
+        // Stub to satisfy calls when framework absent
+        private func handleBiometricError(_ error: Error) {
+            errorMessage = "Biometric authentication not supported"
+        }
+    #endif
+
+    // MARK: - Settings
+
     func enableBiometricAuth() async -> Bool {
-        let success = await authenticateWithBiometrics(reason: "Enable \(biometricTypeString) for quick access to your account")
-        
+        let success = await authenticateWithBiometrics(
+            reason: "Enable \(biometricTypeString) for quick access"
+        )
         if success {
             isBiometricEnabled = true
             saveBiometricSettings()
             print("✅ Biometric authentication enabled")
         }
-        
         return success
     }
-    
+
     func disableBiometricAuth() {
         isBiometricEnabled = false
         saveBiometricSettings()
         print("🔐 Biometric authentication disabled")
     }
-    
+
     private func saveBiometricSettings() {
         UserDefaults.standard.set(isBiometricEnabled, forKey: biometricEnabledKey)
     }
-    
+
     private func loadBiometricSettings() {
         isBiometricEnabled = UserDefaults.standard.bool(forKey: biometricEnabledKey)
     }
-    
-    // MARK: - Quick Authentication for App Launch
-    
+
+    // MARK: - Launch Flow
+
     func shouldRequireBiometricAuth() -> Bool {
-        return isBiometricEnabled && isAvailable
+        isBiometricEnabled && isAvailable
     }
-    
+
     func authenticateForAppAccess() async -> Bool {
-        guard shouldRequireBiometricAuth() else {
-            return true // No biometric auth required
-        }
-        
-        return await authenticateWithBiometrics(reason: "Unlock Hamrah App with \(biometricTypeString)")
+        guard shouldRequireBiometricAuth() else { return true }
+        return await authenticateWithBiometrics(
+            reason: "Unlock Hamrah App with \(biometricTypeString)"
+        )
     }
 }

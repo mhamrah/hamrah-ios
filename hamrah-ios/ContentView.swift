@@ -5,8 +5,8 @@
 //  Created by Mike Hamrah on 8/10/25.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -20,29 +20,42 @@ struct ContentView: View {
             List {
                 ForEach(items) { item in
                     NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
+                        Text(
+                            "Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))"
+                        )
                     } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                        Text(
+                            item.timestamp,
+                            format: Date.FormatStyle(date: .numeric, time: .standard))
                     }
                 }
                 .onDelete(perform: deleteItems)
+                #if os(macOS)
+                    .listStyle(.inset(alternatesRowBackgrounds: true))
+                #else
+                    .listStyle(.automatic)
+                #endif
             }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
+            #if os(macOS)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 220)
+                .frame(minWidth: 700, minHeight: 480)
+            #endif
             .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
+                #if os(iOS)
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        EditButton()
+                    }
+                #endif
                 ToolbarItem {
                     Button(action: addItem) {
                         Label("Add Item", systemImage: "plus")
                     }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink(destination: MyAccountView().environmentObject(authManager).environmentObject(biometricManager)) {
+                    NavigationLink(
+                        destination: MyAccountView().environmentObject(authManager)
+                            .environmentObject(biometricManager)
+                    ) {
                         Image(systemName: "person.circle")
                             .font(.title3)
                     }
@@ -50,6 +63,11 @@ struct ContentView: View {
             }
         } detail: {
             Text("Select an item")
+                #if os(macOS)
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                #endif
         }
         .onAppear {
             checkBiometricSetupPrompt()
@@ -68,17 +86,16 @@ struct ContentView: View {
             .environmentObject(biometricManager)
         }
     }
-    
+
     private func checkBiometricSetupPrompt() {
         // Only show prompt if:
         // 1. Biometric auth is available
         // 2. User hasn't enabled it yet
         // 3. User hasn't been prompted before
         let hasBeenPrompted = UserDefaults.standard.bool(forKey: "hamrah_biometric_setup_prompted")
-        
-        if biometricManager.isAvailable && 
-           !biometricManager.isBiometricEnabled && 
-           !hasBeenPrompted {
+
+        if biometricManager.isAvailable && !biometricManager.isBiometricEnabled && !hasBeenPrompted
+        {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 showBiometricSetupPrompt = true
             }

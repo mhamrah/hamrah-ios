@@ -22,59 +22,63 @@ struct MyAccountView: View {
     @State private var showAPISettings = false
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // User Information Section
-                    userInfoSection
-
-                    // Biometric Security Section
-                    biometricSection
-
-                    // Passkeys Section
-                    passkeysSection
-
-                    // API Configuration Section
-                    #if DEBUG
-                        apiConfigurationSection
-                    #endif
-
-                    // Debug Section (only in debug builds)
-                    #if DEBUG
-                        debugSection
-                    #endif
-
-                    // Logout Section
-                    logoutSection
+        #if os(macOS)
+            NavigationView {
+                ScrollView {
+                    contentStack
+                        .padding()
                 }
-                .padding()
-            }
-            .navigationTitle("My Account")
-            .navigationBarTitleDisplayMode(.large)
-            .onAppear {
-                // Validate auth state and refresh if needed
-                validateAuthState()
-                loadPasskeys()
-            }
-            .alert("Error", isPresented: .constant(errorMessage != nil)) {
-                Button("OK") {
-                    errorMessage = nil
+                .navigationTitle("My Account")
+                .onAppear {
+                    validateAuthState()
+                    loadPasskeys()
                 }
-            } message: {
-                Text(errorMessage ?? "")
             }
-            .alert("Remove Passkey", isPresented: $showConfirmDialog) {
-                Button("Cancel", role: .cancel) {
-                    credentialToDelete = nil
+            .frame(minWidth: 760, minHeight: 680)
+        #else
+            NavigationView {
+                ScrollView {
+                    contentStack
+                        .padding()
                 }
-                Button("Remove", role: .destructive) {
-                    if let credential = credentialToDelete {
-                        removePasskey(credential)
-                    }
+                .navigationTitle("My Account")
+                .navigationBarTitleDisplayMode(.large)
+                .onAppear {
+                    validateAuthState()
+                    loadPasskeys()
                 }
-            } message: {
-                Text("Are you sure you want to remove this passkey? This action cannot be undone.")
             }
+        #endif
+        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+        .alert("Remove Passkey", isPresented: $showConfirmDialog) {
+            Button("Cancel", role: .cancel) {
+                credentialToDelete = nil
+            }
+            Button("Remove", role: .destructive) {
+                if let credential = credentialToDelete {
+                    removePasskey(credential)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to remove this passkey? This action cannot be undone.")
+        }
+    }
+
+    // Shared vertical stack content used on both platforms
+    private var contentStack: some View {
+        VStack(spacing: 20) {
+            userInfoSection
+            biometricSection
+            passkeysSection
+            #if DEBUG
+                apiConfigurationSection
+                debugSection
+            #endif
+            logoutSection
         }
     }
 
@@ -229,16 +233,32 @@ struct MyAccountView: View {
                 loadPasskeys()
             })
             .environmentObject(authManager)
+            #if os(macOS)
+                .frame(minWidth: 460, minHeight: 520)
+            #endif
         }
         .sheet(isPresented: $showBiometricSettings) {
-            NavigationView {
-                BiometricSettingsView()
-                    .environmentObject(biometricManager)
-                    .navigationBarItems(
-                        trailing: Button("Done") {
-                            showBiometricSettings = false
-                        })
-            }
+            #if os(macOS)
+                NavigationView {
+                    BiometricSettingsView()
+                        .environmentObject(biometricManager)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") { showBiometricSettings = false }
+                            }
+                        }
+                }
+                .frame(minWidth: 520, minHeight: 560)
+            #else
+                NavigationView {
+                    BiometricSettingsView()
+                        .environmentObject(biometricManager)
+                        .navigationBarItems(
+                            trailing: Button("Done") {
+                                showBiometricSettings = false
+                            })
+                }
+            #endif
         }
     }
 

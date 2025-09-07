@@ -6,7 +6,7 @@ struct APIConfigurationView: View {
     @State private var customURLText: String = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -29,24 +29,27 @@ struct APIConfigurationView: View {
                         }
                     }
                 }
-                
+
                 if configuration.currentEnvironment == .custom {
-                    Section(header: Text("Custom API URL"), 
-                           footer: Text("Enter your custom API endpoint. HTTPS will be enforced automatically.")) {
+                    Section(
+                        header: Text("Custom API URL"),
+                        footer: Text(
+                            "Enter your custom API endpoint. HTTPS will be enforced automatically.")
+                    ) {
                         TextField("api.example.com", text: $customURLText)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .onSubmit {
                                 updateCustomURL()
                             }
-                        
+
                         Button("Update Custom URL") {
                             updateCustomURL()
                         }
                         .disabled(customURLText.isEmpty)
                     }
                 }
-                
+
                 Section(header: Text("Current Configuration")) {
                     HStack {
                         Text("Base URL")
@@ -54,8 +57,9 @@ struct APIConfigurationView: View {
                         Text(configuration.baseURL)
                             .foregroundColor(.secondary)
                             .font(.caption)
+                            .lineLimit(2)
                     }
-                    
+
                     HStack {
                         Text("Environment")
                         Spacer()
@@ -63,7 +67,7 @@ struct APIConfigurationView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 Section {
                     Button("Reset to Production") {
                         configuration.reset()
@@ -74,37 +78,59 @@ struct APIConfigurationView: View {
                 }
             }
             .navigationTitle("API Configuration")
-            .navigationBarItems(
-                trailing: Button("Done") {
-                    presentationMode.wrappedValue.dismiss()
+            #if os(iOS)
+                .navigationBarItems(
+                    trailing: Button("Done") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                )
+            #else
+                .formStyle(.grouped)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") {
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                    }
+                    ToolbarItem(placement: .automatic) {
+                        Button("Apply") {
+                            updateCustomURL()
+                        }
+                        .disabled(
+                            configuration.currentEnvironment == .custom
+                                && customURLText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    .isEmpty
+                        )
+                    }
                 }
-            )
+                .frame(minWidth: 520, minHeight: 520)
+            #endif
             .onAppear {
                 customURLText = configuration.customBaseURL
             }
             .alert("Configuration", isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
+                Button("OK", role: .cancel) {}
             } message: {
                 Text(alertMessage)
             }
         }
     }
-    
+
     private func updateCustomURL() {
         guard !customURLText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             showErrorAlert("Please enter a valid URL")
             return
         }
-        
+
         configuration.setCustomURL(customURLText.trimmingCharacters(in: .whitespacesAndNewlines))
         showSuccessAlert("Custom URL updated successfully")
     }
-    
+
     private func showSuccessAlert(_ message: String) {
         alertMessage = message
         showAlert = true
     }
-    
+
     private func showErrorAlert(_ message: String) {
         alertMessage = message
         showAlert = true

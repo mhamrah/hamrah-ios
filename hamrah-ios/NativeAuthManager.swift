@@ -10,22 +10,18 @@ import AuthenticationServices
 import Foundation
 import SwiftUI
 
-// GoogleSignIn SDK not integrated; optional feature compiled out. Stubs below provide placeholders.
+#if os(iOS)
+    import UIKit
+#endif
+#if os(macOS)
+    import AppKit
+#endif
 
-// MARK: - Google Sign-In Optional Support
-//
-// The GoogleSignIn SDK may not always be integrated (e.g. CI environments or
-// local builds without the Swift Package). We use conditional compilation so
-// the rest of the authentication flow still builds.
-//
-// When the SDK is absent, we provide lightweight placeholder stubs that always
-// throw, allowing the app to compile while clearly indicating the feature is
-// unavailable at runtime.
-
-#if !canImport(GoogleSignIn)
-
-    // Minimal placeholder types to satisfy references when GoogleSignIn
-    // package is not present. These deliberately fail at call time.
+#if canImport(GoogleSignIn) && (os(iOS) || targetEnvironment(macCatalyst))
+    import GoogleSignIn
+#else
+    // Google Sign-In SDK unavailable: build stubs so the rest of the app compiles.
+    // These stubs intentionally throw if actually invoked.
     private enum GoogleSignInUnavailableError {
         static func error() -> NSError {
             NSError(
@@ -33,7 +29,8 @@ import SwiftUI
                 code: -1,
                 userInfo: [
                     NSLocalizedDescriptionKey: "Google Sign-In SDK is not integrated in this build."
-                ])
+                ]
+            )
         }
     }
 
@@ -69,7 +66,6 @@ import SwiftUI
             throw GoogleSignInUnavailableError.error()
         }
     }
-
 #endif
 
 @MainActor
@@ -217,68 +213,91 @@ class NativeAuthManager: NSObject, ObservableObject {
     // MARK: - Google Sign-In
 
     private func configureGoogleSignIn() {
-        guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
-            let plist = NSDictionary(contentsOfFile: path),
-            let clientId = plist["CLIENT_ID"] as? String
-        else {
-            print("⚠️ GoogleService-Info.plist not found or CLIENT_ID missing")
-            return
-        }
-
-        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientId)
-        print("✅ Google Sign-In configured with client ID from GoogleService-Info.plist")
+        #if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
+            guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+                let plist = NSDictionary(contentsOfFile: path),
+                let clientId = plist["CLIENT_ID"] as? String
+            else {
+                print("⚠️ GoogleService-Info.plist not found or CLIENT_ID missing")
+                return
+            }
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientId)
+            print("✅ Google Sign-In configured (HAS_GOOGLE_SIGNIN)")
+        #else
+            // Build without Google Sign-In SDK or flag: operate in degraded mode
+            print(
+                "ℹ️ Google Sign-In unavailable (missing SDK or HAS_GOOGLE_SIGNIN not set). Button will be hidden / disabled."
+            )
+        #endif
     }
 
     func signInWithGoogle() async {
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            print("🔍 Starting Google Sign-In...")
-
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                let presentingViewController = windowScene.windows.first?.rootViewController
-            else {
-                throw NSError(
-                    domain: "GoogleSignIn", code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: "No presenting view controller"])
+        #if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
+            isLoading = true
+            errorMessage = nil
+            do {
+                print("🔍 Starting Google Sign-In...")
+                #if os(iOS) || targetEnvironment(macCatalyst)
+                    guard
+                        let windowScene = UIApplication.shared.connectedScenes.first
+                            as? UIWindowScene,
+                        let presentingViewController = windowScene.windows.first?.rootViewController
+                    else {
+                        throw NSError(
+                            domain: "GoogleSignIn",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "No presenting view controller"]
+                        )
+                    }
+                    let result = try await GIDSignIn.sharedInstance.signIn(
+                        withPresenting: presentingViewController)
+                    let user = result.user
+                    print("🔍 Google Sign-In result received:")
+                    print("  User ID: \(user.userID ?? "nil")")
+                    print("  Email: \(user.profile?.email ?? "nil")")
+                    print("  Name: \(user.profile?.name ?? "nil")")
+                    guard let idToken = user.idToken?.tokenString else {
+                        throw NSError(
+                            domain: "GoogleSignIn",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "No ID token"]
+                        )
+                    }
+                    print("🔍 Google ID token received, length: \(idToken.count)")
+                    print("🔍 Sending authentication request to backend...")
+                    try await authenticateWithBackend(
+                        provider: "google",
+                        credential: idToken,
+                        additionalData: [
+                            "email": user.profile?.email ?? "",
+                            "name": user.profile?.name ?? "",
+                            "picture": user.profile?.imageURL(withDimension: 200)?.absoluteString
+                                ?? "",
+                        ]
+                    )
+                    print("🔍 Google backend authentication completed successfully")
+                #else
+                    throw NSError(
+                        domain: "GoogleSignIn",
+                        code: -2,
+                        userInfo: [
+                            NSLocalizedDescriptionKey: "Unsupported platform for Google Sign-In"
+                        ]
+                    )
+                #endif
+            } catch {
+                errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
+                print("❌ Google Sign-In error: \(error)")
             }
-
-            let result = try await GIDSignIn.sharedInstance.signIn(
-                withPresenting: presentingViewController)
-            let user = result.user
-
-            print("🔍 Google Sign-In result received:")
-            print("  User ID: \(user.userID ?? "nil")")
-            print("  Email: \(user.profile?.email ?? "nil")")
-            print("  Name: \(user.profile?.name ?? "nil")")
-
-            guard let idToken = user.idToken?.tokenString else {
-                throw NSError(
-                    domain: "GoogleSignIn", code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: "No ID token"])
+            isLoading = false
+        #else
+            // Fallback path when Google Sign-In is not compiled in
+            print("ℹ️ signInWithGoogle() called but Google Sign-In is disabled in this build.")
+            await MainActor.run {
+                self.errorMessage = "Google Sign-In not available in this build."
+                self.isLoading = false
             }
-
-            print("🔍 Google ID token received, length: \(idToken.count)")
-            print("🔍 Sending authentication request to backend...")
-
-            // Send Google token to backend
-            try await authenticateWithBackend(
-                provider: "google", credential: idToken,
-                additionalData: [
-                    "email": user.profile?.email ?? "",
-                    "name": user.profile?.name ?? "",
-                    "picture": user.profile?.imageURL(withDimension: 200)?.absoluteString ?? "",
-                ])
-
-            print("🔍 Google backend authentication completed successfully")
-
-        } catch {
-            errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
-            print("❌ Google Sign-In error: \(error)")
-        }
-
-        isLoading = false
+        #endif
     }
 
     // MARK: - Passkey Authentication
@@ -907,12 +926,18 @@ extension NativeAuthManager: ASAuthorizationControllerDelegate {
 
 extension NativeAuthManager: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-            let window = windowScene.windows.first
-        else {
+        #if os(iOS)
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                let window = windowScene.windows.first
+            else {
+                return ASPresentationAnchor()
+            }
+            return window
+        #elseif os(macOS)
+            return NSApplication.shared.windows.first ?? ASPresentationAnchor()
+        #else
             return ASPresentationAnchor()
-        }
-        return window
+        #endif
     }
 }
 

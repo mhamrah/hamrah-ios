@@ -74,14 +74,18 @@ struct AddPasskeyView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Add Passkey")
             #if os(iOS)
+                .navigationTitle("Add Passkey")
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationBarItems(
                     trailing: Button("Done") {
                         presentationMode.wrappedValue.dismiss()
                     }.disabled(isLoading)
                 )
+            #elseif os(macOS)
+                // macOS: still show a title, and give the sheet/content a sensible default size
+                .navigationTitle("Add Passkey")
+                .frame(minWidth: 420, minHeight: 520)
             #endif
             .alert("Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") {
