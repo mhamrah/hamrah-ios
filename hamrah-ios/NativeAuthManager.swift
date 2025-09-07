@@ -17,7 +17,7 @@ import SwiftUI
     import AppKit
 #endif
 
-#if canImport(GoogleSignIn) && (os(iOS) || targetEnvironment(macCatalyst))
+#if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn) && (os(iOS) || targetEnvironment(macCatalyst))
     import GoogleSignIn
 #else
     // Google Sign-In SDK unavailable: build stubs so the rest of the app compiles.

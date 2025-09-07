@@ -26,7 +26,7 @@ import Foundation
 /// }
 ///
 /// This model tolerates optional / alternative field names to reduce coupling.
-public struct APIResponse: Codable, Equatable {
+public struct APIResponse: Codable {
 
     /// Whether the operation succeeded.
     public let success: Bool
@@ -70,7 +70,7 @@ public struct APIResponse: Codable, Equatable {
     }
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: DynamicCodingKeys.self)
+        let container = try decoder.container(keyedBy: APIDynamicCodingKeys.self)
 
         // Capture all key/value pairs first
         var tempRaw: [String: AnyCodable] = [:]
@@ -82,22 +82,23 @@ public struct APIResponse: Codable, Equatable {
 
         // Success fallbacks: "success" (preferred) or "ok"
         let successValue =
-            (try? container.decode(Bool.self, forKey: DynamicCodingKeys("success")))
-            ?? (try? container.decode(Bool.self, forKey: DynamicCodingKeys("ok"))) ?? false
+            (try? container.decode(Bool.self, forKey: APIDynamicCodingKeys("success")))
+            ?? (try? container.decode(Bool.self, forKey: APIDynamicCodingKeys("ok"))) ?? false
 
         // Error fallbacks
         let errorValue =
-            (try? container.decode(String.self, forKey: DynamicCodingKeys("error")))
-            ?? (try? container.decode(String.self, forKey: DynamicCodingKeys("err"))) ?? nil
+            (try? container.decode(String.self, forKey: APIDynamicCodingKeys("error")))
+            ?? (try? container.decode(String.self, forKey: APIDynamicCodingKeys("err"))) ?? nil
 
         // Message / detail fallbacks
         let messageValue =
-            (try? container.decode(String.self, forKey: DynamicCodingKeys("message")))
-            ?? (try? container.decode(String.self, forKey: DynamicCodingKeys("msg"))) ?? nil
+            (try? container.decode(String.self, forKey: APIDynamicCodingKeys("message")))
+            ?? (try? container.decode(String.self, forKey: APIDynamicCodingKeys("msg"))) ?? nil
 
         let detailValue =
-            (try? container.decode(String.self, forKey: DynamicCodingKeys("detail")))
-            ?? (try? container.decode(String.self, forKey: DynamicCodingKeys("description"))) ?? nil
+            (try? container.decode(String.self, forKey: APIDynamicCodingKeys("detail")))
+            ?? (try? container.decode(String.self, forKey: APIDynamicCodingKeys("description")))
+            ?? nil
 
         self.success = successValue
         self.error = errorValue
@@ -107,25 +108,27 @@ public struct APIResponse: Codable, Equatable {
     }
 
     public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: DynamicCodingKeys.self)
-        try container.encode(success, forKey: DynamicCodingKeys("success"))
-        if let error = error { try container.encode(error, forKey: DynamicCodingKeys("error")) }
+        var container = encoder.container(keyedBy: APIDynamicCodingKeys.self)
+        try container.encode(success, forKey: APIDynamicCodingKeys("success"))
+        if let error = error { try container.encode(error, forKey: APIDynamicCodingKeys("error")) }
         if let message = message {
-            try container.encode(message, forKey: DynamicCodingKeys("message"))
+            try container.encode(message, forKey: APIDynamicCodingKeys("message"))
         }
-        if let detail = detail { try container.encode(detail, forKey: DynamicCodingKeys("detail")) }
+        if let detail = detail {
+            try container.encode(detail, forKey: APIDynamicCodingKeys("detail"))
+        }
 
         // Persist any additional raw values that are not the canonical fields
         for (k, v) in raw {
             if ["success", "error", "message", "detail"].contains(k) { continue }
-            try container.encode(v, forKey: DynamicCodingKeys(k))
+            try container.encode(v, forKey: APIDynamicCodingKeys(k))
         }
     }
 }
 
 // MARK: - DynamicCodingKeys
 
-private struct DynamicCodingKeys: CodingKey, Hashable {
+private struct APIDynamicCodingKeys: CodingKey, Hashable {
     let stringValue: String
     let intValue: Int?
 
@@ -148,7 +151,7 @@ private struct DynamicCodingKeys: CodingKey, Hashable {
 
 /// A type-erased Codable wrapper allowing us to retain unknown fields without
 /// introducing a third-party dependency.
-public struct AnyCodable: Codable, Equatable {
+public struct AnyCodable: Codable {
     public let value: Any
 
     public init(_ value: Any) { self.value = value }

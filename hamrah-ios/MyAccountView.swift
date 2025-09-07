@@ -6,7 +6,24 @@
 //
 
 import AuthenticationServices
+import Foundation
 import SwiftUI
+
+// Explicit imports ensure model/service symbols (PasskeyCredential, APIConfiguration, SecureAPIService, etc.) are visible here.
+
+// Local cross-platform background helper so this file builds on both iOS & macOS
+// (mirrors what Color(.systemBackground) provides on iOS).
+extension Color {
+    static var appBackground: Color {
+        #if canImport(UIKit)
+            return Color(UIColor.systemBackground)
+        #elseif canImport(AppKit)
+            return Color(NSColor.windowBackgroundColor)
+        #else
+            return Color.white
+        #endif
+    }
+}
 
 struct MyAccountView: View {
     @EnvironmentObject var authManager: NativeAuthManager
@@ -14,6 +31,7 @@ struct MyAccountView: View {
     @State private var passkeys: [PasskeyCredential] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var showErrorAlert = false
     @State private var showConfirmDialog = false
     @State private var credentialToDelete: PasskeyCredential?
     @State private var showAddPasskey = false
@@ -22,37 +40,39 @@ struct MyAccountView: View {
     @State private var showAPISettings = false
 
     var body: some View {
-        #if os(macOS)
-            NavigationView {
-                ScrollView {
-                    contentStack
-                        .padding()
+        Group {
+            #if os(macOS)
+                NavigationView {
+                    ScrollView {
+                        contentStack
+                            .padding()
+                    }
+                    .navigationTitle("My Account")
+                    .onAppear {
+                        validateAuthState()
+                        loadPasskeys()
+                    }
                 }
-                .navigationTitle("My Account")
-                .onAppear {
-                    validateAuthState()
-                    loadPasskeys()
+                .frame(minWidth: 760, minHeight: 680)
+            #else
+                NavigationView {
+                    ScrollView {
+                        contentStack
+                            .padding()
+                    }
+                    .navigationTitle("My Account")
+                    .navigationBarTitleDisplayMode(.large)
+                    .onAppear {
+                        validateAuthState()
+                        loadPasskeys()
+                    }
                 }
-            }
-            .frame(minWidth: 760, minHeight: 680)
-        #else
-            NavigationView {
-                ScrollView {
-                    contentStack
-                        .padding()
-                }
-                .navigationTitle("My Account")
-                .navigationBarTitleDisplayMode(.large)
-                .onAppear {
-                    validateAuthState()
-                    loadPasskeys()
-                }
-            }
-        #endif
-        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            #endif
+        }
+        .alert("Error", isPresented: $showErrorAlert) {
             Button("OK") { errorMessage = nil }
         } message: {
-            Text(errorMessage ?? "")
+            Text(errorMessage ?? "Unknown error")
         }
         .alert("Remove Passkey", isPresented: $showConfirmDialog) {
             Button("Cancel", role: .cancel) {
@@ -98,7 +118,7 @@ struct MyAccountView: View {
                 }
             }
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color.appBackground)
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
@@ -139,7 +159,7 @@ struct MyAccountView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
-            .background(Color(.systemBackground))
+            .background(Color.appBackground)
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
@@ -299,7 +319,7 @@ struct MyAccountView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
-            .background(Color(.systemBackground))
+            .background(Color.appBackground)
             .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         }
@@ -343,7 +363,7 @@ struct MyAccountView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
-            .background(Color(.systemBackground))
+            .background(Color.appBackground)
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
@@ -360,7 +380,7 @@ struct MyAccountView: View {
             .foregroundColor(.red)
             .frame(maxWidth: .infinity)
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color.appBackground)
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
@@ -374,6 +394,7 @@ struct MyAccountView: View {
             print("⚠️ Invalid auth state detected - isAuthenticated=true but missing user or token")
             authManager.logout()
             errorMessage = "Authentication state invalid. Please sign in again."
+            showErrorAlert = true
         }
     }
 
@@ -396,6 +417,7 @@ struct MyAccountView: View {
 
         guard let accessToken = authManager.accessToken else {
             errorMessage = "Not authenticated. Please sign in again."
+            showErrorAlert = true
             return
         }
 
@@ -412,6 +434,7 @@ struct MyAccountView: View {
             } catch {
                 await MainActor.run {
                     self.errorMessage = "Failed to load passkeys: \(error.localizedDescription)"
+                    self.showErrorAlert = true
                     self.isLoading = false
                 }
             }
@@ -431,6 +454,7 @@ struct MyAccountView: View {
             } catch {
                 await MainActor.run {
                     self.errorMessage = "Failed to remove passkey: \(error.localizedDescription)"
+                    self.showErrorAlert = true
                     self.credentialToDelete = nil
                 }
             }
