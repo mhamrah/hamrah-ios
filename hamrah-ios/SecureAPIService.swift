@@ -2,16 +2,16 @@ import Foundation
 
 class SecureAPIService: ObservableObject {
     static let shared = SecureAPIService()
-    
+
     private let attestationManager = AppAttestationManager.shared
     private var baseURL: String {
         APIConfiguration.shared.baseURL
     }
-    
+
     private init() {}
-    
+
     // MARK: - Secure API Request Methods
-    
+
     /// Makes a secure API request with App Attestation
     func makeSecureRequest<T: Codable>(
         endpoint: String,
@@ -26,52 +26,54 @@ class SecureAPIService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         // Add authorization if provided
         if let token = accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
+
         // Add body if provided
         if let body = body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
-        
+
         // Generate challenge for attestation
         let challenge = generateRequestChallenge(url: url, method: method, body: body)
-        
+
         // Add App Attestation headers (required)
-        let attestationHeaders = try await attestationManager.generateAttestationHeaders(for: challenge)
+        let attestationHeaders = try await attestationManager.generateAttestationHeaders(
+            for: challenge)
         for (key, value) in attestationHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        
+
         // Add challenge for server verification
         request.setValue(challenge.base64EncodedString(), forHTTPHeaderField: "X-Request-Challenge")
-        
+
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
-        
+
         // Handle authentication errors
         if httpResponse.statusCode == 401 {
             throw APIError.unauthorized
         }
-        
+
         guard httpResponse.statusCode == 200 else {
             // Try to decode error message
             if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorMessage = errorData["error"] as? String {
+                let errorMessage = errorData["error"] as? String
+            {
                 throw APIError.serverError(httpResponse.statusCode, errorMessage)
             }
             throw APIError.serverError(httpResponse.statusCode, "Request failed")
         }
-        
+
         return try JSONDecoder().decode(T.self, from: data)
     }
-    
+
     /// Initialize attestation (should be called after login)
     func initializeAttestation(accessToken: String) async {
         do {
@@ -82,9 +84,9 @@ class SecureAPIService: ObservableObject {
             // Continue without attestation - app should still work with fallback headers
         }
     }
-    
+
     // MARK: - Convenience Methods
-    
+
     func get<T: Codable>(
         endpoint: String,
         accessToken: String?,
@@ -100,7 +102,7 @@ class SecureAPIService: ObservableObject {
             customBaseURL: customBaseURL
         )
     }
-    
+
     func post<T: Codable>(
         endpoint: String,
         body: [String: Any],
@@ -117,7 +119,7 @@ class SecureAPIService: ObservableObject {
             customBaseURL: customBaseURL
         )
     }
-    
+
     func delete<T: Codable>(
         endpoint: String,
         body: [String: Any]? = nil,
@@ -132,24 +134,26 @@ class SecureAPIService: ObservableObject {
             responseType: responseType
         )
     }
-    
+
     // MARK: - Private Methods
-    
-    private func generateRequestChallenge(url: URL, method: HTTPMethod, body: [String: Any]?) -> Data {
+
+    private func generateRequestChallenge(url: URL, method: HTTPMethod, body: [String: Any]?)
+        -> Data
+    {
         // Create a deterministic challenge based on request details
         var challengeString = "\(method.rawValue):\(url.absoluteString)"
-        
+
         if let body = body {
             // Sort keys for deterministic serialization
             let sortedKeys = body.keys.sorted()
             let bodyString = sortedKeys.map { key in
                 "\(key):\(body[key] ?? "")"
-            }.joined(separator:",")
+            }.joined(separator: ",")
             challengeString += ":\(bodyString)"
         }
-        
+
         challengeString += ":\(Date().timeIntervalSince1970)"
-        
+
         return challengeString.data(using: .utf8) ?? Data()
     }
 }
@@ -172,7 +176,7 @@ enum APIError: LocalizedError {
     case serverError(Int, String)
     case attestationFailed(String)
     case simulatorNotSupported
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
@@ -183,14 +187,17 @@ enum APIError: LocalizedError {
             return "Server error (\(code)): \(message)"
         case .attestationFailed(let details):
             #if targetEnvironment(simulator)
-            return "App verification not supported on simulator. Please test on a physical device."
+                return
+                    "App verification not supported on simulator. Please test on a physical device."
             #else
-            return "App verification failed: \(details)"
+                return "App verification failed: \(details)"
             #endif
         case .simulatorNotSupported:
-            return "This feature requires a physical iOS device and is not supported on the simulator."
+            return
+                "This feature requires a physical iOS device and is not supported on the simulator."
         }
     }
 }
 
-// MARK: - Note: APIResponse is defined in MyAccountView.swift
+// MARK: - Note:
+// APIResponse model now lives in Models/APIResponse.swift (previously referenced from MyAccountView.swift)

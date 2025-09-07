@@ -418,17 +418,12 @@ struct MyAccountView: View {
     }
 
     private func fetchPasskeys(accessToken: String) async throws -> [PasskeyCredential] {
-<<<<<<< HEAD
         guard let userId = authManager.currentUser?.id else {
-            throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "User ID not available"])
+            throw NSError(
+                domain: "API",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "User ID not available"])
         }
-        
-=======
-        // Updated to use user-specific credentials endpoint
-        guard let userId = authManager.currentUser?.id else {
-            return []
-        }
->>>>>>> b02a0d3 (Refactor passkey API endpoints and move models to separate file)
         return try await SecureAPIService.shared.get(
             endpoint: "/api/webauthn/users/\(userId)/credentials",
             accessToken: accessToken,

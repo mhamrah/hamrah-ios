@@ -75,12 +75,14 @@ struct AddPasskeyView: View {
             }
             .padding()
             .navigationTitle("Add Passkey")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(
-                trailing: Button("Done") {
-                    presentationMode.wrappedValue.dismiss()
-                }.disabled(isLoading)
-            )
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarItems(
+                    trailing: Button("Done") {
+                        presentationMode.wrappedValue.dismiss()
+                    }.disabled(isLoading)
+                )
+            #endif
             .alert("Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") {
                     errorMessage = nil

@@ -8,8 +8,69 @@
 
 import AuthenticationServices
 import Foundation
-import GoogleSignIn
 import SwiftUI
+
+// GoogleSignIn SDK not integrated; optional feature compiled out. Stubs below provide placeholders.
+
+// MARK: - Google Sign-In Optional Support
+//
+// The GoogleSignIn SDK may not always be integrated (e.g. CI environments or
+// local builds without the Swift Package). We use conditional compilation so
+// the rest of the authentication flow still builds.
+//
+// When the SDK is absent, we provide lightweight placeholder stubs that always
+// throw, allowing the app to compile while clearly indicating the feature is
+// unavailable at runtime.
+
+#if !canImport(GoogleSignIn)
+
+    // Minimal placeholder types to satisfy references when GoogleSignIn
+    // package is not present. These deliberately fail at call time.
+    private enum GoogleSignInUnavailableError {
+        static func error() -> NSError {
+            NSError(
+                domain: "GoogleSignInUnavailable",
+                code: -1,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Google Sign-In SDK is not integrated in this build."
+                ])
+        }
+    }
+
+    class GIDConfiguration {
+        init(clientID: String) {}
+    }
+
+    class GIDGoogleUser {
+        var userID: String? = nil
+        var profile: Profile? = Profile()
+        var idToken: IDToken? = nil
+
+        class Profile {
+            var email: String? = nil
+            var name: String? = nil
+            func imageURL(withDimension: UInt) -> URL? { nil }
+        }
+
+        class IDToken {
+            var tokenString: String? = nil
+        }
+    }
+
+    struct GIDSignInResult {
+        let user: GIDGoogleUser
+    }
+
+    class GIDSignIn {
+        static let sharedInstance = GIDSignIn()
+        var configuration: GIDConfiguration?
+
+        func signIn(withPresenting presentingViewController: Any) async throws -> GIDSignInResult {
+            throw GoogleSignInUnavailableError.error()
+        }
+    }
+
+#endif
 
 @MainActor
 class NativeAuthManager: NSObject, ObservableObject {
