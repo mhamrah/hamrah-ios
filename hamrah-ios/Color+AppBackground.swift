@@ -1,4 +1,3 @@
-aiapp/hamrah-ios/hamrah-ios/Color+AppBackground.swift#L1-82
 //
 //  Color+AppBackground.swift
 //  hamrahIOS
