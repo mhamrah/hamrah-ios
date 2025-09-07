@@ -5,8 +5,8 @@
 //  My Account page for iOS app
 //
 
-import SwiftUI
 import AuthenticationServices
+import SwiftUI
 
 struct MyAccountView: View {
     @EnvironmentObject var authManager: NativeAuthManager
@@ -20,30 +20,30 @@ struct MyAccountView: View {
     @State private var showBiometricSettings = false
     @State private var showDebugLogs = false
     @State private var showAPISettings = false
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
                     // User Information Section
                     userInfoSection
-                    
+
                     // Biometric Security Section
                     biometricSection
-                    
+
                     // Passkeys Section
                     passkeysSection
-                    
+
                     // API Configuration Section
                     #if DEBUG
-                    apiConfigurationSection
+                        apiConfigurationSection
                     #endif
-                    
+
                     // Debug Section (only in debug builds)
                     #if DEBUG
-                    debugSection
+                        debugSection
                     #endif
-                    
+
                     // Logout Section
                     logoutSection
                 }
@@ -77,13 +77,13 @@ struct MyAccountView: View {
             }
         }
     }
-    
+
     private var userInfoSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Account Information")
                 .font(.headline)
                 .padding(.horizontal)
-            
+
             VStack(spacing: 12) {
                 if let user = authManager.currentUser {
                     AccountInfoRow(label: "User ID", value: user.id)
@@ -99,13 +99,13 @@ struct MyAccountView: View {
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
     }
-    
+
     private var biometricSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Security")
                 .font(.headline)
                 .padding(.horizontal)
-            
+
             VStack(spacing: 0) {
                 Button(action: {
                     showBiometricSettings = true
@@ -114,19 +114,19 @@ struct MyAccountView: View {
                         Image(systemName: biometricIconName)
                             .foregroundColor(.blue)
                             .frame(width: 24)
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(biometricManager.biometricTypeString)
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
-                            
+
                             Text(biometricStatusText)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         Spacer()
-                        
+
                         Image(systemName: "chevron.right")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -140,7 +140,7 @@ struct MyAccountView: View {
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
     }
-    
+
     private var biometricIconName: String {
         switch biometricManager.biometricType {
         case .faceID:
@@ -155,7 +155,7 @@ struct MyAccountView: View {
             return "questionmark"
         }
     }
-    
+
     private var biometricStatusText: String {
         if !biometricManager.isAvailable {
             return "Not available on this device"
@@ -165,24 +165,25 @@ struct MyAccountView: View {
             return "Tap to set up"
         }
     }
-    
+
     private var passkeysSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Passkeys")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 Button("Add Passkey") {
                     showAddPasskey = true
                 }
                 .font(.caption)
                 .foregroundColor(.blue)
-                .disabled(isLoading || authManager.currentUser == nil || authManager.accessToken == nil)
+                .disabled(
+                    isLoading || authManager.currentUser == nil || authManager.accessToken == nil)
             }
             .padding(.horizontal)
-            
+
             if isLoading {
                 ProgressView("Loading passkeys...")
                     .frame(maxWidth: .infinity)
@@ -233,19 +234,20 @@ struct MyAccountView: View {
             NavigationView {
                 BiometricSettingsView()
                     .environmentObject(biometricManager)
-                    .navigationBarItems(trailing: Button("Done") {
-                        showBiometricSettings = false
-                    })
+                    .navigationBarItems(
+                        trailing: Button("Done") {
+                            showBiometricSettings = false
+                        })
             }
         }
     }
-    
+
     private var apiConfigurationSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("API Configuration")
                 .font(.headline)
                 .padding(.horizontal)
-            
+
             VStack(spacing: 0) {
                 Button(action: {
                     showAPISettings = true
@@ -254,19 +256,21 @@ struct MyAccountView: View {
                         Image(systemName: "server.rack")
                             .foregroundColor(.blue)
                             .frame(width: 24)
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text("API Endpoint")
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
-                            
-                            Text("Currently: \(APIConfiguration.shared.currentEnvironment.rawValue)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+
+                            Text(
+                                "Currently: \(APIConfiguration.shared.currentEnvironment.rawValue)"
+                            )
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         }
-                        
+
                         Spacer()
-                        
+
                         Image(systemName: "chevron.right")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -283,13 +287,13 @@ struct MyAccountView: View {
             APIConfigurationView()
         }
     }
-    
+
     private var debugSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Debug")
                 .font(.headline)
                 .padding(.horizontal)
-            
+
             VStack(spacing: 0) {
                 Button(action: {
                     showDebugLogs = true
@@ -298,19 +302,19 @@ struct MyAccountView: View {
                         Image(systemName: "doc.text")
                             .foregroundColor(.orange)
                             .frame(width: 24)
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Debug Logs")
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
-                            
+
                             Text("View authentication logs")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         Spacer()
-                        
+
                         Image(systemName: "chevron.right")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -327,7 +331,7 @@ struct MyAccountView: View {
             DebugLogsView()
         }
     }
-    
+
     private var logoutSection: some View {
         VStack {
             Button("Sign Out") {
@@ -341,16 +345,18 @@ struct MyAccountView: View {
             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
     }
-    
+
     private func validateAuthState() {
         // Check if we have the required auth components
-        if authManager.isAuthenticated && (authManager.currentUser == nil || authManager.accessToken == nil) {
+        if authManager.isAuthenticated
+            && (authManager.currentUser == nil || authManager.accessToken == nil)
+        {
             print("⚠️ Invalid auth state detected - isAuthenticated=true but missing user or token")
             authManager.logout()
             errorMessage = "Authentication state invalid. Please sign in again."
         }
     }
-    
+
     private func formatDate(_ dateString: String) -> String {
         let formatter = ISO8601DateFormatter()
         if let date = formatter.date(from: dateString) {
@@ -360,22 +366,22 @@ struct MyAccountView: View {
         }
         return dateString
     }
-    
+
     private func loadPasskeys() {
         // Debug authentication state
         print("🔍 MyAccountView Authentication Debug:")
         print("  Current User: \(authManager.currentUser?.email ?? "nil")")
         print("  Access Token: \(authManager.accessToken != nil ? "present" : "nil")")
         print("  Is Authenticated: \(authManager.isAuthenticated)")
-        
-        guard let accessToken = authManager.accessToken else { 
+
+        guard let accessToken = authManager.accessToken else {
             errorMessage = "Not authenticated. Please sign in again."
-            return 
+            return
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         Task {
             do {
                 let credentials = try await fetchPasskeys(accessToken: accessToken)
@@ -391,10 +397,10 @@ struct MyAccountView: View {
             }
         }
     }
-    
+
     private func removePasskey(_ credential: PasskeyCredential) {
         guard let accessToken = authManager.accessToken else { return }
-        
+
         Task {
             do {
                 try await deletePasskey(credentialId: credential.id, accessToken: accessToken)
@@ -410,25 +416,30 @@ struct MyAccountView: View {
             }
         }
     }
-    
+
     private func fetchPasskeys(accessToken: String) async throws -> [PasskeyCredential] {
+<<<<<<< HEAD
         guard let userId = authManager.currentUser?.id else {
             throw NSError(domain: "API", code: -1, userInfo: [NSLocalizedDescriptionKey: "User ID not available"])
         }
         
+=======
+        // Updated to use user-specific credentials endpoint
+        guard let userId = authManager.currentUser?.id else {
+            return []
+        }
+>>>>>>> b02a0d3 (Refactor passkey API endpoints and move models to separate file)
         return try await SecureAPIService.shared.get(
             endpoint: "/api/webauthn/users/\(userId)/credentials",
             accessToken: accessToken,
             responseType: PasskeyListResponse.self
         ).credentials
     }
-    
+
     private func deletePasskey(credentialId: String, accessToken: String) async throws {
-        let body = ["credentialId": credentialId]
-        
+        // Updated to use path parameter style delete (no body)
         _ = try await SecureAPIService.shared.delete(
-            endpoint: "/api/webauthn/credentials",
-            body: body,
+            endpoint: "/api/webauthn/credentials/\(credentialId)",
             accessToken: accessToken,
             responseType: APIResponse.self
         )
@@ -438,14 +449,14 @@ struct MyAccountView: View {
 struct AccountInfoRow: View {
     let label: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .frame(width: 80, alignment: .leading)
-            
+
             Text(value)
                 .font(.caption)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -457,7 +468,7 @@ struct AccountInfoRow: View {
 struct PasskeyRow: View {
     let passkey: PasskeyCredential
     let onRemove: (PasskeyCredential) -> Void
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -465,25 +476,25 @@ struct PasskeyRow: View {
                     Image(systemName: "key.fill")
                         .font(.caption)
                         .foregroundColor(.green)
-                    
+
                     Text(passkey.name)
                         .font(.caption)
                         .fontWeight(.medium)
                 }
-                
+
                 Text("Created \(formatDate(passkey.createdAt))")
                     .font(.caption2)
                     .foregroundColor(.secondary)
-                
+
                 if let lastUsed = passkey.lastUsed {
                     Text("Last used \(formatDate(lastUsed))")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
-            
+
             Button("Remove") {
                 onRemove(passkey)
             }
@@ -496,7 +507,7 @@ struct PasskeyRow: View {
         }
         .padding(.vertical, 8)
     }
-    
+
     private func formatDate(_ dateString: String) -> String {
         let formatter = ISO8601DateFormatter()
         if let date = formatter.date(from: dateString) {
@@ -508,72 +519,9 @@ struct PasskeyRow: View {
     }
 }
 
-// MARK: - Data Models
-
-struct PasskeyCredential: Codable, Identifiable {
-    let id: String
-    let name: String
-    let createdAt: String
-    let lastUsed: String?
-    let credentialDeviceType: String?
-    let credentialBackedUp: Bool?
-    
-    // Handle cases where some fields might have different names or be missing
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: DynamicCodingKeys.self)
-        
-        // Try different possible field names for ID
-        if let credentialId = try? container.decode(String.self, forKey: DynamicCodingKeys(stringValue: "credentialId")!) {
-            id = credentialId
-        } else if let idValue = try? container.decode(String.self, forKey: DynamicCodingKeys(stringValue: "id")!) {
-            id = idValue
-        } else {
-            throw DecodingError.keyNotFound(DynamicCodingKeys(stringValue: "id")!, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "No valid ID field found"))
-        }
-        
-        name = try container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "name")!) ?? "Passkey"
-        createdAt = try container.decode(String.self, forKey: DynamicCodingKeys(stringValue: "createdAt")!)
-        lastUsed = try? container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "lastUsed")!)
-        credentialDeviceType = try? container.decodeIfPresent(String.self, forKey: DynamicCodingKeys(stringValue: "credentialDeviceType")!)
-        credentialBackedUp = try? container.decodeIfPresent(Bool.self, forKey: DynamicCodingKeys(stringValue: "credentialBackedUp")!)
-    }
-}
-
-// Dynamic coding keys to handle different field names
-struct DynamicCodingKeys: CodingKey {
-    var stringValue: String
-    var intValue: Int?
-    
-    init?(stringValue: String) {
-        self.stringValue = stringValue
-        self.intValue = nil
-    }
-    
-    init?(intValue: Int) {
-        self.stringValue = String(intValue)
-        self.intValue = intValue
-    }
-}
-
-struct PasskeyListResponse: Codable {
-    let success: Bool
-    let credentials: [PasskeyCredential]
-    let error: String?
-    
-    // Handle cases where credentials might be missing or null
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        success = try container.decode(Bool.self, forKey: .success)
-        credentials = try container.decodeIfPresent([PasskeyCredential].self, forKey: .credentials) ?? []
-        error = try container.decodeIfPresent(String.self, forKey: .error)
-    }
-}
-
-struct APIResponse: Codable {
-    let success: Bool
-    let error: String?
-    let message: String?
-}
+// MARK: - Data Models (Passkey models factored out to Models/PasskeyCredential.swift)
+// All passkey-related model types have been moved to:
+// hamrah-ios/Models/PasskeyCredential.swift
 
 #Preview {
     MyAccountView()

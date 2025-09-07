@@ -250,7 +250,7 @@ struct WebAuthnSignUpView: View {
             ] as [String: Any]
 
         let result = try await SecureAPIService.shared.post(
-            endpoint: "/api/webauthn/register/complete",
+            endpoint: "/api/webauthn/register/verify",
             body: body,
             accessToken: nil,  // No auth needed for new user registration
             responseType: APIResponse.self,
