@@ -11,19 +11,7 @@ import SwiftUI
 
 // Explicit imports ensure model/service symbols (PasskeyCredential, APIConfiguration, SecureAPIService, etc.) are visible here.
 
-// Local cross-platform background helper so this file builds on both iOS & macOS
-// (mirrors what Color(.systemBackground) provides on iOS).
-extension Color {
-    static var appBackground: Color {
-        #if canImport(UIKit)
-            return Color(UIColor.systemBackground)
-        #elseif canImport(AppKit)
-            return Color(NSColor.windowBackgroundColor)
-        #else
-            return Color.white
-        #endif
-    }
-}
+// appBackground helper moved to Color+AppBackground.swift
 
 struct MyAccountView: View {
     @EnvironmentObject var authManager: NativeAuthManager
