@@ -215,7 +215,7 @@ struct MyAccountView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color(.systemBackground))
+                .background(Color.appBackground)
                 .cornerRadius(12)
                 .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             } else {
@@ -231,7 +231,7 @@ struct MyAccountView: View {
                     }
                 }
                 .padding()
-                .background(Color(.systemBackground))
+                .background(Color.appBackground)
                 .cornerRadius(12)
                 .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             }

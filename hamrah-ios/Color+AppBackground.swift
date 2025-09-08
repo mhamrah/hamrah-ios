@@ -35,24 +35,13 @@ public extension Color {
         return Color(UIColor.systemBackground)
         #elseif canImport(AppKit)
         // NSColor.windowBackgroundColor provides a neutral window content surface.
-        return Color(nsColorSafe(named: .windowBackgroundColor) ?? .textBackgroundColor)
+        return Color(NSColor.windowBackgroundColor)
         #else
         // Minimal fallback for any other (unlikely) platform.
         return Color("AppBackgroundFallback", bundle: nil) // Allow override via asset, else clear/white.
         #endif
     }
 
-    #if canImport(AppKit) && !targetEnvironment(macCatalyst)
-    /// Safely resolves an NSColor; if resolution fails, returns nil.
-    private static func nsColorSafe(named key: NSColor.Name) -> NSColor? {
-        #if os(macOS)
-        return NSColor.perform(NSSelectorFromString(key.rawValue))?
-            .takeUnretainedValue() as? NSColor ?? NSColor(named: key)
-        #else
-        return nil
-        #endif
-    }
-    #endif
 }
 
 // MARK: - Optional Preview

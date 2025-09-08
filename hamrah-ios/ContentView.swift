@@ -51,6 +51,7 @@ struct ContentView: View {
                         Label("Add Item", systemImage: "plus")
                     }
                 }
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
                     NavigationLink(
                         destination: MyAccountView().environmentObject(authManager)
@@ -60,6 +61,17 @@ struct ContentView: View {
                             .font(.title3)
                     }
                 }
+                #else
+                ToolbarItem(placement: .navigation) {
+                    NavigationLink(
+                        destination: MyAccountView().environmentObject(authManager)
+                            .environmentObject(biometricManager)
+                    ) {
+                        Image(systemName: "person.circle")
+                            .font(.title3)
+                    }
+                }
+                #endif
             }
         } detail: {
             Text("Select an item")

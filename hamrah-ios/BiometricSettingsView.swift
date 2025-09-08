@@ -106,7 +106,9 @@ struct BiometricSettingsView: View {
             }
         }
         .navigationTitle("Biometric Security")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .alert("Biometric Authentication", isPresented: $showingAlert) {
             Button("OK") { }
         } message: {

@@ -11,11 +11,12 @@
 //  WebAuthn-only sign up flow for creating new accounts with passkeys (inactive)
 //
 
+#if os(iOS)
 import AuthenticationServices
 import SwiftUI
 
 struct WebAuthnSignUpView: View {
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authManager: NativeAuthManager
     @State private var email = ""
     @State private var name = ""
@@ -121,12 +122,22 @@ struct WebAuthnSignUpView: View {
             .padding(.horizontal, 32)
             .padding(.vertical, 20)
             .navigationTitle("Sign Up")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
                 leading: Button("Cancel") {
-                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }.disabled(isLoading)
             )
+            #else
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }.disabled(isLoading)
+                }
+            }
+            #endif
         }
     }
 
@@ -148,7 +159,7 @@ struct WebAuthnSignUpView: View {
                     name: name.trimmingCharacters(in: .whitespacesAndNewlines))
 
                 await MainActor.run {
-                    self.presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }
             } catch {
                 await MainActor.run {
@@ -310,3 +321,19 @@ class NewUserPasskeyRegistrationDelegate: NSObject, ASAuthorizationControllerDel
     WebAuthnSignUpView()
         .environmentObject(NativeAuthManager())
 }
+#else
+// macOS stub - this view is iOS-only due to AuthenticationServices dependencies
+import SwiftUI
+
+struct WebAuthnSignUpView: View {
+    var body: some View {
+        Text("WebAuthn sign-up is not available on macOS")
+            .font(.headline)
+            .padding()
+    }
+}
+
+#Preview {
+    WebAuthnSignUpView()
+}
+#endif

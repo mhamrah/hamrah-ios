@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleIdentifier</key>
-	<string>app.hamrah.ios</string>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>CFBundleURLTypes</key>
@@ -29,7 +27,5 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>107139115848-jvf449cojr174ocan4vpanddh8i48oko.apps.googleusercontent.com</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Use Face ID to quickly and securely access your account</string>
 </dict>
 </plist>

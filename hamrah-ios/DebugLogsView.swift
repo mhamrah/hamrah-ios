@@ -13,6 +13,22 @@ struct DebugLogsView: View {
     @State private var isLoading = true
     @State private var showShareSheet = false
     
+    private var toolbarMenuPlacement: ToolbarItemPlacement {
+        #if os(iOS)
+        return .navigationBarTrailing
+        #else
+        return .primaryAction
+        #endif
+    }
+    
+    private var toolbarDoneButtonPlacement: ToolbarItemPlacement {
+        #if os(iOS)
+        return .navigationBarLeading
+        #else
+        return .cancellationAction
+        #endif
+    }
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -43,9 +59,11 @@ struct DebugLogsView: View {
                 }
             }
             .navigationTitle("Debug Logs")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: toolbarMenuPlacement) {
                     Menu {
                         Button(action: loadLogs) {
                             Label("Refresh", systemImage: "arrow.clockwise")
@@ -65,7 +83,7 @@ struct DebugLogsView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: toolbarDoneButtonPlacement) {
                     Button("Done") {
                         dismiss()
                     }
@@ -109,6 +127,7 @@ struct DebugLogsView: View {
     }
 }
 
+#if os(iOS)
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     
@@ -119,6 +138,52 @@ struct ShareSheet: UIViewControllerRepresentable {
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+#elseif os(macOS)
+struct ShareSheet: View {
+    let items: [Any]
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Share Logs")
+                .font(.headline)
+            
+            Text("Log file location:")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            if let url = items.first as? URL {
+                Text(url.path)
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
+                    .padding()
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(8)
+            }
+            
+            HStack {
+                Button("Open in Finder") {
+                    if let url = items.first as? URL {
+                        NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: url.deletingLastPathComponent().path)
+                    }
+                    dismiss()
+                }
+                
+                Button("Copy Path") {
+                    if let url = items.first as? URL {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(url.path, forType: .string)
+                    }
+                    dismiss()
+                }
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding()
+        .frame(width: 400, height: 200)
+    }
+}
+#endif
 
 #Preview {
     DebugLogsView()

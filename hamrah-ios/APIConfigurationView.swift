@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct APIConfigurationView: View {
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
     @State private var configuration = APIConfiguration.shared
     @State private var customURLText: String = ""
     @State private var showAlert = false
@@ -37,8 +37,10 @@ struct APIConfigurationView: View {
                             "Enter your custom API endpoint. HTTPS will be enforced automatically.")
                     ) {
                         TextField("api.example.com", text: $customURLText)
+                            #if os(iOS)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
+                            #endif
                             .onSubmit {
                                 updateCustomURL()
                             }
@@ -79,31 +81,31 @@ struct APIConfigurationView: View {
             }
             .navigationTitle("API Configuration")
             #if os(iOS)
-                .navigationBarItems(
-                    trailing: Button("Done") {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                )
+            .navigationBarItems(
+                trailing: Button("Done") {
+                    dismiss()
+                }
+            )
             #else
-                .formStyle(.grouped)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") {
-                            presentationMode.wrappedValue.dismiss()
-                        }
-                    }
-                    ToolbarItem(placement: .automatic) {
-                        Button("Apply") {
-                            updateCustomURL()
-                        }
-                        .disabled(
-                            configuration.currentEnvironment == .custom
-                                && customURLText.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    .isEmpty
-                        )
+            .formStyle(.grouped)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        dismiss()
                     }
                 }
-                .frame(minWidth: 520, minHeight: 520)
+                ToolbarItem(placement: .automatic) {
+                    Button("Apply") {
+                        updateCustomURL()
+                    }
+                    .disabled(
+                        configuration.currentEnvironment == .custom
+                            && customURLText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                .isEmpty
+                    )
+                }
+            }
+            .frame(minWidth: 520, minHeight: 520)
             #endif
             .onAppear {
                 customURLText = configuration.customBaseURL
