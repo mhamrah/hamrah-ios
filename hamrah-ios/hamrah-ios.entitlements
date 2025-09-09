@@ -11,5 +11,11 @@
 		<string>webcredentials:hamrah.app</string>
 		<string>applinks:hamrah.app</string>
 	</array>
+	<key>com.apple.security.personal-information.addressbook</key>
+	<true/>
+	<key>com.apple.security.personal-information.calendars</key>
+	<true/>
+	<key>com.apple.security.personal-information.location</key>
+	<true/>
 </dict>
 </plist>
