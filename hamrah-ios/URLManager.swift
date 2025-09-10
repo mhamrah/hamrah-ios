@@ -16,10 +16,12 @@ class URLManager: ObservableObject {
     
     private let secureAPI = SecureAPIService.shared
     private var modelContext: ModelContext?
+    private weak var authManager: NativeAuthManager?
     
-    // Initialize with model context
-    func setModelContext(_ context: ModelContext) {
+    // Initialize with model context and auth manager
+    func setModelContext(_ context: ModelContext, authManager: NativeAuthManager? = nil) {
         self.modelContext = context
+        self.authManager = authManager
         
         // Start sync process if user is authenticated
         Task {
@@ -97,8 +99,9 @@ class URLManager: ObservableObject {
         guard let context = modelContext else { return }
         
         // Check if user is authenticated
-        let authManager = NativeAuthManager()
-        guard authManager.isAuthenticated, let accessToken = authManager.accessToken else {
+        guard let authManager = authManager,
+              authManager.isAuthenticated, 
+              let accessToken = authManager.accessToken else {
             print("ℹ️ User not authenticated, skipping sync for: \(savedURL.url)")
             return
         }
@@ -151,8 +154,9 @@ class URLManager: ObservableObject {
         guard let context = modelContext else { return }
         
         // Check if user is authenticated
-        let authManager = NativeAuthManager()
-        guard authManager.isAuthenticated, let accessToken = authManager.accessToken else {
+        guard let authManager = authManager,
+              authManager.isAuthenticated, 
+              let accessToken = authManager.accessToken else {
             return
         }
         
@@ -221,8 +225,8 @@ class URLManager: ObservableObject {
     }
     
     private func deleteURLFromBackend(_ backendId: String) async {
-        let authManager = NativeAuthManager()
-        guard let accessToken = authManager.accessToken else { return }
+        guard let authManager = authManager,
+              let accessToken = authManager.accessToken else { return }
         
         do {
             let _ = try await secureAPI.delete(

@@ -107,7 +107,7 @@ struct ContentView: View {
         }
         .onAppear {
             checkBiometricSetupPrompt()
-            urlManager.setModelContext(modelContext)
+            urlManager.setModelContext(modelContext, authManager: authManager)
             
             Task {
                 await urlManager.fetchProcessingUpdates()

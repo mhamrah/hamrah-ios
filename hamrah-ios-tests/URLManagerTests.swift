@@ -21,7 +21,7 @@ struct URLManagerTests {
         let context = ModelContext(container)
         
         let urlManager = URLManager()
-        urlManager.setModelContext(context)
+        urlManager.setModelContext(context, authManager: nil)
         
         return (urlManager, container, context)
     }
