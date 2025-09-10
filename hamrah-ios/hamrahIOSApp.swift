@@ -10,9 +10,12 @@ import SwiftData
 
 @main
 struct hamrahIOSApp: App {
+    @StateObject private var urlManager = URLManager()
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
+            SavedURL.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -26,11 +29,27 @@ struct hamrahIOSApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environmentObject(urlManager)
                 .onOpenURL { url in
-                    // Handle deep link URLs (OAuth callback)
-                    print("Received URL: \(url)")
+                    handleIncomingURL(url)
                 }
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    private func handleIncomingURL(_ url: URL) {
+        print("Received URL: \(url)")
+        
+        // Handle OAuth callback URLs (existing functionality)
+        if url.scheme == "hamrah" {
+            print("OAuth callback URL received")
+            return
+        }
+        
+        // Handle shared URLs from other apps
+        if url.scheme == "http" || url.scheme == "https" {
+            print("Shared URL received: \(url.absoluteString)")
+            urlManager.saveURL(url.absoluteString)
+        }
     }
 }
