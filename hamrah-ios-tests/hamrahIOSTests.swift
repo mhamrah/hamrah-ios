@@ -588,3 +588,64 @@ struct TokenManagementTests {
         #expect(newAuthManager.isAuthenticated || !newAuthManager.isAuthenticated) // Either state is valid depending on timing
     }
 }
+
+// MARK: - Biometric Authentication on Launch Tests
+
+@MainActor
+struct BiometricLaunchAuthTests {
+    
+    @Test("Biometric manager should require biometric auth when enabled")
+    func testBiometricManagerShouldRequireAuth() async throws {
+        // Given: Biometric manager with biometric enabled
+        let biometricManager = BiometricAuthManager()
+        biometricManager.isBiometricEnabled = true
+        
+        // When: Checking if biometric auth should be required
+        let shouldRequire = biometricManager.shouldRequireBiometricAuth()
+        
+        // Then: Result depends on availability (should be true if available)
+        #expect(shouldRequire == biometricManager.isAvailable)
+    }
+    
+    @Test("Biometric manager authenticateForAppAccess returns true when disabled")
+    func testAuthenticateForAppAccessWhenDisabled() async throws {
+        // Given: Biometric manager with biometric disabled
+        let biometricManager = BiometricAuthManager()
+        biometricManager.isBiometricEnabled = false
+        
+        // When: Calling authenticateForAppAccess
+        let result = await biometricManager.authenticateForAppAccess()
+        
+        // Then: Should return true (no auth required)
+        #expect(result == true)
+    }
+    
+    @Test("Biometric manager provides correct biometric type string")
+    func testBiometricTypeString() async throws {
+        // Given: Biometric manager
+        let biometricManager = BiometricAuthManager()
+        
+        // When: Getting biometric type string
+        let typeString = biometricManager.biometricTypeString
+        
+        // Then: Should be one of the expected values
+        let validTypes = ["Face ID", "Touch ID", "Optic ID", "None", "Unavailable", "Unknown"]
+        #expect(validTypes.contains(typeString))
+    }
+    
+    @Test("Biometric manager handles error messages correctly")
+    func testBiometricErrorHandling() async throws {
+        // Given: Biometric manager
+        let biometricManager = BiometricAuthManager()
+        
+        // When: Initially checking error state
+        let initialError = biometricManager.errorMessage
+        
+        // Then: Should start with no error
+        #expect(initialError == nil)
+        
+        // Test that error message can be set
+        biometricManager.errorMessage = "Test error"
+        #expect(biometricManager.errorMessage == "Test error")
+    }
+}
