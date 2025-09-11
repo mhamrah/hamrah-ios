@@ -130,18 +130,18 @@ struct MyAccountView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(biometricManager.biometricTypeString)
                                 .font(.subheadline)
-                                .foregroundColor(.primary)
+                                .foregroundStyle(.primary)
 
                             Text(biometricStatusText)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .padding()
                 }
@@ -288,20 +288,20 @@ struct MyAccountView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("API Endpoint")
                                 .font(.subheadline)
-                                .foregroundColor(.primary)
+                                .foregroundStyle(.primary)
 
                             Text(
                                 "Currently: \(APIConfiguration.shared.currentEnvironment.rawValue)"
                             )
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         }
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .padding()
                 }
@@ -334,18 +334,18 @@ struct MyAccountView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Debug Logs")
                                 .font(.subheadline)
-                                .foregroundColor(.primary)
+                                .foregroundStyle(.primary)
 
                             Text("View authentication logs")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .padding()
                 }
@@ -481,7 +481,7 @@ struct AccountInfoRow: View {
         HStack {
             Text(label)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .frame(width: 80, alignment: .leading)
 
             Text(value)
@@ -511,12 +511,12 @@ struct PasskeyRow: View {
 
                 Text("Created \(formatDate(passkey.createdAt))")
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 if let lastUsed = passkey.lastUsed {
                     Text("Last used \(formatDate(lastUsed))")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
 

@@ -28,7 +28,7 @@ struct BiometricSettingsView: View {
                         if biometricManager.isAvailable {
                             Text("Use \(biometricManager.biometricTypeString) to quickly access your account")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         } else {
                             Text("Not available on this device")
                                 .font(.caption)
@@ -92,15 +92,15 @@ struct BiometricSettingsView: View {
                     
                     Text("• Your biometric data never leaves your device")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     
                     Text("• We use your device's secure hardware to verify your identity")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     
                     Text("• You can always disable this feature in settings")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 8)
             }

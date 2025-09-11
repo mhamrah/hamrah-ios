@@ -31,7 +31,7 @@ struct BiometricSetupPromptView: View {
                 
                 Text("Use \(biometricManager.biometricTypeString) for quick and secure access to your account")
                     .font(.body)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
@@ -89,7 +89,7 @@ struct BiometricSetupPromptView: View {
                     onSkip()
                 }
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .disabled(isSettingUp)
             }
             .padding(.horizontal, 32)
@@ -143,11 +143,11 @@ struct FeatureBenefit: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundStyle(.primary)
                 
                 Text(description)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             
             Spacer()

@@ -36,7 +36,7 @@ struct AddPasskeyView: View {
                     )
                     .font(.body)
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal)
                 }
 
@@ -68,7 +68,7 @@ struct AddPasskeyView: View {
                 Button("Cancel") {
                     presentationMode.wrappedValue.dismiss()
                 }
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .disabled(isLoading)
 
                 Spacer()
