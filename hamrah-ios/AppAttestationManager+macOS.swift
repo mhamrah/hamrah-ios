@@ -176,10 +176,18 @@
             status = SecCodeCheckValidity(secCode, SecCSFlags(), nil)
             let isValid = status == errSecSuccess
             
+            // Convert SecCode to SecStaticCode for signing information
+            var staticCode: SecStaticCode?
+            status = SecCodeCopyStaticCode(secCode, SecCSFlags(), &staticCode)
+            
+            guard status == errSecSuccess, let secStaticCode = staticCode else {
+                throw AttestationError.codeSignatureVerificationFailed("Failed to get static code reference")
+            }
+            
             // Get signing information
             var signingInfo: CFDictionary?
             status = SecCodeCopySigningInformation(
-                secCode,
+                secStaticCode,
                 SecCSFlags(rawValue: kSecCSSigningInformation | kSecCSRequirementInformation),
                 &signingInfo
             )
@@ -196,11 +204,9 @@
                 // Extract certificate information
                 if let certificates = info[kSecCodeInfoCertificates as String] as? [SecCertificate],
                    let firstCert = certificates.first {
-                    var certData: CFData?
-                    if SecCertificateCopyData(firstCert, &certData) == errSecSuccess,
-                       let data = certData as Data? {
-                        certificateFingerprint = sha256String(data).prefix(16).description
-                    }
+                    let certData = SecCertificateCopyData(firstCert)
+                    let data = certData as Data
+                    certificateFingerprint = String(sha256String(data).prefix(16))
                 }
             }
             
@@ -322,7 +328,7 @@
         private func generateAttestationToken(challenge: Data) async throws -> String {
             guard let keyId = attestationKeyId else {
                 // Fallback to basic hash-based token
-                return sha256String(challenge + Data(Date().timeIntervalSince1970.description.utf8)).prefix(32).description
+                return String(sha256String(challenge + Data(Date().timeIntervalSince1970.description.utf8)).prefix(32))
             }
             
             // Try to load and use cryptographic key
@@ -362,7 +368,7 @@
             let tokenData = keyId + ":" + challenge.base64EncodedString() + ":" + String(timestamp)
             let tokenHash = sha256String(Data(tokenData.utf8))
             
-            return "enhanced:" + tokenHash.prefix(32)
+            return "enhanced:" + String(tokenHash.prefix(32))
         }
 
         // MARK: - Internal Helpers
