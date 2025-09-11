@@ -203,7 +203,7 @@ struct SavedURLRow: View {
             
             Text(savedURL.createdAt, format: .dateTime.month().day().hour().minute())
                 .font(.caption)
-                .foregroundColor(.tertiary)
+                .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
     }
