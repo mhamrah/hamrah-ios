@@ -60,7 +60,7 @@ struct BiometricPromptView: View {
                             "Use \(biometricManager.biometricTypeString) to securely access your account"
                         )
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                         .accessibilityIdentifier("unlockSubtitle")
@@ -129,12 +129,12 @@ struct BiometricPromptView: View {
                 VStack(spacing: 8) {
                     Text("Secure access with biometric authentication")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
 
                     Text("Your biometric data stays securely on your device")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 360)
                 }

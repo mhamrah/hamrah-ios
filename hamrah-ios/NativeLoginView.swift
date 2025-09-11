@@ -69,7 +69,7 @@ struct NativeLoginView: View {
 
                 Text("Sign in to continue")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             // Authentication Methods
@@ -130,7 +130,7 @@ struct NativeLoginView: View {
                         .scaleEffect(0.8)
                     Text("Signing in...")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.top, 8)
             }
@@ -159,11 +159,11 @@ struct NativeLoginView: View {
                 VStack(spacing: 8) {
                     Text("Secure authentication")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     Text("Your data is protected and synced across devices")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 320)
                 }
@@ -241,7 +241,7 @@ struct PasskeyEmailInputView: View {
 
                 Text("Enter your email to use your saved passkey")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 

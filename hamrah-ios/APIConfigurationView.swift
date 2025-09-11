@@ -57,7 +57,7 @@ struct APIConfigurationView: View {
                         Text("Base URL")
                         Spacer()
                         Text(configuration.baseURL)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .font(.caption)
                             .lineLimit(2)
                     }
@@ -66,7 +66,7 @@ struct APIConfigurationView: View {
                         Text("Environment")
                         Spacer()
                         Text(configuration.currentEnvironment.rawValue)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 }
 

@@ -41,7 +41,7 @@ struct WebAuthnSignUpView: View {
 
                     Text("Create a secure account using your device's biometric authentication")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -53,7 +53,7 @@ struct WebAuthnSignUpView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Full Name")
                             .font(.headline)
-                            .foregroundColor(.primary)
+                            .foregroundStyle(.primary)
 
                         TextField("Enter your full name", text: $name)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -64,7 +64,7 @@ struct WebAuthnSignUpView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Email Address")
                             .font(.headline)
-                            .foregroundColor(.primary)
+                            .foregroundStyle(.primary)
 
                         TextField("Enter your email", text: $email)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -111,12 +111,12 @@ struct WebAuthnSignUpView: View {
                 VStack(spacing: 8) {
                     Text("Your passkey will be securely stored on this device")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
 
                     Text("No passwords required")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, 32)

@@ -33,15 +33,15 @@ struct ContentView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "link.badge.plus")
                             .font(.system(size: 48))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         
                         Text("No URLs saved yet")
                             .font(.headline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         
                         Text("Share URLs to Hamrah from Safari, Mail, or other apps to get started.")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -100,7 +100,7 @@ struct ContentView: View {
                 Text("Select a URL to view details")
                     #if os(macOS)
                         .font(.title3)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     #endif
             }
@@ -165,7 +165,7 @@ struct SavedURLRow: View {
                     
                     Text(savedURL.url)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
                 
@@ -180,7 +180,7 @@ struct SavedURLRow: View {
             if let summary = savedURL.summary, !summary.isEmpty {
                 Text(summary)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(3)
             }
             
@@ -357,7 +357,7 @@ struct SavedURLDetailView: View {
                                 .font(.caption)
                         }
                     }
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 }
                 
                 Spacer()

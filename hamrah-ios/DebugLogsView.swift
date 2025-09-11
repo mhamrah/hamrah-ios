@@ -45,7 +45,7 @@ struct DebugLogsView: View {
                             .foregroundColor(.gray)
                         Text("Debug logs will appear here when authentication events occur")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -150,7 +150,7 @@ struct ShareSheet: View {
             
             Text("Log file location:")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             
             if let url = items.first as? URL {
                 Text(url.path)
