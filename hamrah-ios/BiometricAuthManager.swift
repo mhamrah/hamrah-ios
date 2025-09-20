@@ -154,7 +154,7 @@ class BiometricAuthManager: ObservableObject {
                 errorMessage = "Authentication cancelled by app"
             case .invalidDimensions:
                 errorMessage = "Invalid biometric data"
-            #if os(watchOS)
+            #if os(watchOS) || os(macOS)
                 case .watchNotAvailable:
                     errorMessage = "Apple Watch unavailable"
             #endif
@@ -166,8 +166,6 @@ class BiometricAuthManager: ObservableObject {
                 errorMessage = "Touch ID not set up"
             case .touchIDLockout:
                 errorMessage = "Touch ID locked. Use passcode."
-            case .watchNotAvailable:
-                errorMessage = "Apple Watch not available"
             case .biometryNotPaired:
                 errorMessage = "Biometric device not paired"
             @unknown default:
