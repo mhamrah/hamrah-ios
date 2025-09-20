@@ -166,6 +166,10 @@ class BiometricAuthManager: ObservableObject {
                 errorMessage = "Touch ID not set up"
             case .touchIDLockout:
                 errorMessage = "Touch ID locked. Use passcode."
+            case .watchNotAvailable:
+                errorMessage = "Apple Watch not available"
+            case .biometryNotPaired:
+                errorMessage = "Biometric device not paired"
             @unknown default:
                 errorMessage = "Unknown biometric error"
             }
