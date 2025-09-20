@@ -1,0 +1,216 @@
+Hamrah Device Preferences API Contract
+Version: 2025-09-20
+
+Purpose
+- Define the server-side API used by the Hamrah iOS app to sync Settings (“Device Preferences”) across devices.
+- Keep the client simple and secure: server validates, canonicalizes, and merges preferences.
+- Ensure compatibility with App Attestation and offline-first local storage.
+
+Principles
+- Authenticated: All endpoints require a valid user access token (Bearer).
+- Integrity: Requests include attestation headers and a per-request challenge.
+- Idempotent writes: POST is safe to retry; server merges by timestamp/version.
+- Explicit schema: Server returns the canonical DevicePrefs object.
+- Privacy: No sensitive data in user defaults; client stores locally in SwiftData/Keychain.
+
+Authentication and Integrity
+- Authorization: Bearer <access_token>
+- Integrity headers (App Attestation):
+  - X-Request-Challenge: base64-encoded, client-generated deterministic challenge per request
+  - Additional headers as produced by iOS App Attest; accept macOS/simulator stubs with downgraded trust
+- Reject if Authorization missing/invalid (401)
+- Attestation validation:
+  - On iOS devices, verify App Attest headers. Permit simulator/macOS stubs only in development or with reduced trust.
+  - Log bundle ID, app version, platform for risk analysis.
+
+Resources
+1) GET /api/v1/device-prefs
+   Purpose:
+   - Fetch the current device-scoped preferences for the authenticated user/device.
+   Request:
+   - Headers: Authorization, Attestation headers, X-Request-Challenge
+   Response 200 application/json:
+   {
+     "push_enabled": boolean,
+     "push_token": string|null,
+     "preferred_models": [string],
+     "archive_cache_quota_mb": integer,
+     "last_updated_at": string (RFC3339),
+     "device_id": string,                // server-issued stable device key
+     "user_id": string,                  // optional echo for diagnostics
+     "version": integer                  // monotonic version for concurrency
+   }
+   Notes:
+   - device_id allows multi-device reconciliation.
+   - version is server-managed and increments on write.
+
+2) POST /api/v1/device-prefs
+   Purpose:
+   - Upsert device-scoped preferences. Entire object supplied; partial merges allowed.
+   Request:
+   - Headers: Authorization, Attestation headers, X-Request-Challenge
+   - Body application/json:
+   {
+     "push_enabled": boolean,
+     "push_token": string|null,          // optional, see /push/register
+     "preferred_models": [string],       // validated against /api/v1/models if available
+     "archive_cache_quota_mb": integer,  // clamp to [128, 4096]
+     "device_id": string|null,           // optional hint, server may ignore/replace
+     "if_version": integer|null          // optional optimistic concurrency
+   }
+   Behavior:
+   - If if_version is present and older than current, return 409 Conflict with current object.
+   - If missing, merge and store; return canonical object with updated version and last_updated_at.
+   Response 200 application/json: canonical DevicePrefs object (same shape as GET)
+
+3) GET /api/v1/models
+   Purpose:
+   - Return available model identifiers the client may select.
+   Request:
+   - Headers: Authorization (optional but recommended), Attestation headers (optional)
+   Response 200 application/json:
+   { "models": [ "gpt-4o-mini", "claude-3.5-sonnet", "gpt-4o", "mistral-nemo" ] }
+   Notes:
+   - If this endpoint is unavailable, server should accept free-form model IDs on POST /device-prefs.
+   - Recommend caching for 24h with Cache-Control.
+
+4) POST /api/v1/push/register (optional convenience)
+   Purpose:
+   - Register or update the device’s push token outside of Settings write flow.
+   Request:
+   - Headers: Authorization, Attestation headers, X-Request-Challenge
+   - Body application/json:
+   {
+     "platform": "ios" | "macos",
+     "token": string,               // APNs token
+     "device_id": string|null       // client hint; server will issue/stabilize if absent
+   }
+   Response 200 application/json:
+   {
+     "device_id": string,
+     "registered_at": string (RFC3339)
+   }
+
+Data Model and Validation
+DevicePrefs JSON (server canonical form):
+- push_enabled: boolean (default false)
+- push_token: string|null
+  - opaque; store last-seen token for user+device
+- preferred_models: array of non-empty strings
+  - if /api/v1/models exists, server validates membership; otherwise accept and store
+  - limit size: max 16 items; dedupe case-insensitively
+- archive_cache_quota_mb: integer
+  - clamp to [128, 4096]; default 512
+- last_updated_at: RFC3339 server timestamp
+- device_id: server-managed stable identifier for this user+device
+- user_id: optional echo for diagnostics
+- version: integer, monotonic per user+device DevicePrefs row
+
+Merging and Concurrency
+- Server stores one row per (user_id, device_id). If device_id not known:
+  - Issue a new device_id and return it; client persists locally.
+- POST with if_version:
+  - If if_version < current.version → 409 Conflict; include current canonical object to let client resolve.
+  - If absent → unconditional merge (server wins conflicts by updated_at or internal policy).
+- Server always returns canonical object with increased version and current last_updated_at.
+
+Security and Abuse Controls
+- Require Bearer auth on write endpoints.
+- Validate attestation on iOS; accept macOS/simulator with reduced trust policy.
+- Rate limit:
+  - /device-prefs: 30 writes/hour per device
+  - /push/register: 60 writes/hour per device
+  - /models: 600 reads/hour per IP/user
+- Audit log: user_id, device_id, IP, headers subset (non-sensitive), attestation result.
+
+HTTP Status Codes
+- 200 OK: success
+- 201 Created: optionally for first-time device_id issue on POST /device-prefs
+- 400 Bad Request: validation error (with details)
+- 401 Unauthorized: missing/invalid token
+- 403 Forbidden: attestation failed (if enforced)
+- 409 Conflict: version conflict on POST with if_version
+- 429 Too Many Requests: rate limit exceeded
+- 500 Server Error: unexpected
+
+Error Response Format
+{
+  "error": {
+    "code": "validation_error" | "unauthorized" | "conflict" | "rate_limited" | "server_error",
+    "message": "Human readable message",
+    "details": { "field": "preferred_models", "reason": "unknown_model", "value": "foo" }
+  }
+}
+
+Examples (curl)
+1) Fetch device prefs
+curl -sS -X GET https://api.hamrah.app/api/v1/device-prefs \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Request-Challenge: $CHALLENGE" \
+  -H "Content-Type: application/json"
+
+2) Save device prefs (idempotent)
+curl -sS -X POST https://api.hamrah.app/api/v1/device-prefs \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Request-Challenge: $CHALLENGE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "push_enabled": true,
+    "push_token": "apns_dev_ABC123",
+    "preferred_models": ["gpt-4o-mini", "claude-3.5-sonnet"],
+    "archive_cache_quota_mb": 512,
+    "if_version": 4
+  }'
+
+3) Fetch model catalog
+curl -sS -X GET https://api.hamrah.app/api/v1/models
+
+Server Implementation Notes
+- Identity
+  - user_id from access token
+  - device_id: server-issued stable key; derive from push token hash or generate UUID and bind to device on first write/register
+- Storage
+  - Table device_prefs(user_id, device_id, version, push_enabled, push_token, preferred_models[], archive_cache_quota_mb, last_updated_at, created_at)
+  - Unique (user_id, device_id)
+- Validation
+  - Models: ensure subset of catalog if catalog exists; else store as-is
+  - Quota: clamp 128..4096
+  - Arrays: dedupe, trim whitespace, reject empty strings
+- Attestation
+  - On iOS, verify App Attest artifacts; short-circuit to reduced-trust mode for simulator/macOS stubs
+  - Record attestation outcome; optionally gate writes on strong attestation
+- Multi-device Semantics
+  - Each device manages its own archive_cache_quota_mb
+  - preferred_models are per-device but may be surfaced in a user-level “effective” profile if desired; keep device-scoped for this contract
+- Caching
+  - /models: public or private cache up to 24h
+  - /device-prefs: no-store (contains user/device state)
+
+Versioning and Migration
+- Endpoint namespace: /api/v1
+- Breaking changes → bump to /api/v2; keep v1 read-only during migration window
+- Additive fields are allowed; clients ignore unknown fields
+
+Testing Checklist
+- Auth required for POST endpoints
+- Validation rejections (unknown model, out-of-range quota, empty model names)
+- Conflict handling with if_version
+- Attestation pass/fail paths
+- Rate limiting responses
+- Idempotent retries (network flaps)
+
+Client Compatibility (current iOS app)
+- Expects:
+  - GET /api/v1/device-prefs → DevicePrefs JSON (fields above)
+  - POST /api/v1/device-prefs → same shape as GET
+  - GET /api/v1/models → { "models": [string] }
+- Sends:
+  - X-Request-Challenge header and App Attestation headers
+  - Full object on POST; may include if_version, device_id hints; server canonicalizes
+- Behavior:
+  - Enforces archive_cache_quota_mb locally via LRU
+  - Uses preferred_models when submitting link processing requests
+  - Stores device_id and preferences locally upon success
+
+Change Log
+- 2025-09-20: Initial draft, aligned with Hamrah iOS Settings screen implementation

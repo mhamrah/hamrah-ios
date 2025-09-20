@@ -27,5 +27,14 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>107139115848-jvf449cojr174ocan4vpanddh8i48oko.apps.googleusercontent.com</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>app.hamrah.ios.sync</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>

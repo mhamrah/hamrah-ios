@@ -13,7 +13,7 @@ struct ProgressiveAuthView: View {
     @State private var biometricAuthPending = false
     @State private var showingBiometricPrompt = false
     @State private var hasCheckedBiometric = false
-    
+
     var body: some View {
         Group {
             if biometricAuthPending {
@@ -25,9 +25,7 @@ struct ProgressiveAuthView: View {
                         }
                     }
             } else if authManager.isAuthenticated {
-                ContentView()
-                    .environmentObject(authManager)
-                    .environmentObject(biometricManager)
+                InboxView()
             } else {
                 NativeLoginView()
                     .environmentObject(authManager)
@@ -45,11 +43,11 @@ struct ProgressiveAuthView: View {
             }
         }
     }
-    
+
     private func checkBiometricAuthRequirement() {
         // Prevent multiple biometric auth attempts
         guard !hasCheckedBiometric && !biometricAuthPending else { return }
-        
+
         // Only require biometric auth if user is authenticated and biometric is enabled
         if authManager.isAuthenticated && biometricManager.shouldRequireBiometricAuth() {
             biometricAuthPending = true
@@ -58,20 +56,20 @@ struct ProgressiveAuthView: View {
             hasCheckedBiometric = true
         }
     }
-    
+
     private func handleBiometricAuthOnLaunch() async {
         // Prevent multiple simultaneous auth attempts
         guard biometricAuthPending else { return }
-        
+
         let success = await biometricManager.authenticateForAppAccess()
-        
+
         await MainActor.run {
             biometricAuthPending = false
-            
+
             if !success {
                 // If biometric auth fails, log out the user for security
                 authManager.logout()
-                hasCheckedBiometric = false // Allow re-checking after logout
+                hasCheckedBiometric = false  // Allow re-checking after logout
             }
         }
     }

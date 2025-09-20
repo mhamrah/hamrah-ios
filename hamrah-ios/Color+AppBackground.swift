@@ -31,8 +31,8 @@ public extension Color {
     ///     be resolved for some reason (e.g. extremely old OS targets).
     static var appBackground: Color {
         #if canImport(UIKit)
-        // UIColor.systemBackground is dynamic (light/dark aware).
-        return Color(UIColor.systemBackground)
+        // Use SwiftUI's system background color (dynamic light/dark aware).
+        return Color(.systemBackground)
         #elseif canImport(AppKit)
         // NSColor.windowBackgroundColor provides a neutral window content surface.
         return Color(NSColor.windowBackgroundColor)
