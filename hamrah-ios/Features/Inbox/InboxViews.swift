@@ -16,38 +16,38 @@ struct InboxView: View {
     @State private var showFailedOnly: Bool = false
     @State private var syncing: Bool = false
 
-    // Dynamic fetch based on search/filter/sort
-    private var fetchDescriptor: FetchDescriptor<LinkEntity> {
-        var predicate: Predicate<LinkEntity>? = nil
+    // Query all links
+    @Query var allLinks: [LinkEntity]
+
+    // Computed property for dynamic filtering and sorting
+    var links: [LinkEntity] {
+        var filtered = allLinks
         if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            let term = searchText.lowercased()
-            predicate = #Predicate<LinkEntity> {
-                ($0.title ?? "").lowercased().contains(term)
-                    || $0.originalUrl.absoluteString.lowercased().contains(term)
-                    || ($0.snippet ?? "").lowercased().contains(term)
+            let term = searchText
+            filtered = filtered.filter {
+                ($0.title ?? "").contains(term)
+                || $0.originalUrl.absoluteString.contains(term)
+                || ($0.snippet ?? "").contains(term)
             }
         } else if showFailedOnly {
-            predicate = #Predicate<LinkEntity> { $0.status == "failed" }
+            filtered = filtered.filter { $0.status == "failed" }
         }
-
-        var sortDescriptors: [SortDescriptor<LinkEntity>]
         switch sort {
         case .recent:
-            sortDescriptors = [SortDescriptor(\.updatedAt, order: .reverse)]
+            filtered.sort { $0.updatedAt > $1.updatedAt }
         case .title:
-            sortDescriptors = [SortDescriptor(\.title, order: .forward)]
+            filtered.sort { ($0.title ?? "") < ($1.title ?? "") }
         case .domain:
-            sortDescriptors = [SortDescriptor(\.canonicalUrl, order: .forward)]
+            filtered.sort { ($0.canonicalUrl.host ?? "") < ($1.canonicalUrl.host ?? "") }
+        case .created:
+            filtered.sort { $0.createdAt > $1.createdAt }
+        @unknown default:
+            break
         }
-
-        return FetchDescriptor<LinkEntity>(predicate: predicate, sortBy: sortDescriptors)
+        return filtered
     }
 
-    @Query var links: [LinkEntity]
-
-    init() {
-        _links = Query(fetchDescriptor: fetchDescriptor)
-    }
+    init() {}
 
     var body: some View {
         NavigationStack {
@@ -85,58 +85,12 @@ struct InboxView: View {
             }
             .refreshable { await runSync() }
             .navigationTitle("Inbox")
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    Menu {
-                        Picker("Sort", selection: $sort) {
-                            ForEach(LinkSort.allCases, id: \.self) { s in
-                                Text(s.title).tag(s)
-                            }
-                        }
-                        Toggle(isOn: $showFailedOnly) {
-                            Label("Show Failed Only", systemImage: "exclamationmark.triangle")
-                        }
-                    } label: {
-                        Label("Sort & Filter", systemImage: "line.3.horizontal.decrease.circle")
-                    }
-                }
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    Button {
-                        Task { await runSync() }
-                    } label: {
-                        if syncing {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Label("Sync", systemImage: "arrow.clockwise")
-                        }
-                    }
-                    .disabled(syncing)
-                }
-                #if os(macOS)
-                    ToolbarItem(placement: .primaryAction) {
-                        NavigationLink {
-                            SettingsView()
-                        } label: {
-                            Image(systemName: "gearshape")
-                        }
-                    }
-                #endif
-            }
+            .modifier(InboxToolbarModifier(sort: $sort, showFailedOnly: $showFailedOnly, syncing: syncing, runSync: runSync))
+            #if os(iOS)
             .searchable(text: $searchText, placement: .navigationBarDrawer, prompt: "Search links")
-            .onChange(of: searchText) { _, _ in
-                _links = Query(fetchDescriptor: fetchDescriptor)
-            }
-            .onChange(of: sort) { _, _ in
-                _links = Query(fetchDescriptor: fetchDescriptor)
-            }
-            .onChange(of: showFailedOnly) { _, _ in
-                _links = Query(fetchDescriptor: fetchDescriptor)
-            }
+            #else
+            .searchable(text: $searchText, prompt: "Search links")
+            #endif
             .navigationDestination(for: UUID.self) { id in
                 if let link = links.first(where: { $0.localId == id }) {
                     LinkDetailView(link: link)
@@ -156,7 +110,9 @@ struct InboxView: View {
         defer { syncing = false }
         await SyncEngine()._testRunSyncNow(reason: "inbox_pull_to_refresh")
         // Re-evaluate query after sync
-        _links = Query(fetchDescriptor: fetchDescriptor)
+        // Instead of assigning to _links, which is immutable, trigger a state change
+        // by updating a dummy state variable or by toggling a boolean
+        // For now, just set syncing to false (already handled by defer)
     }
 }
 
@@ -262,6 +218,7 @@ struct LinkDetailView: View {
             .ignoresSafeArea(edges: .bottom)
         }
         .navigationTitle(link.title ?? domainOrURLString(link))
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -270,7 +227,7 @@ struct LinkDetailView: View {
                 } label: {
                     Label("Open Original", systemImage: "safari")
                 }
-                #if os(iOS)
+             
                     if link.archive?.isReady == true,
                         let local = ArchiveCacheManager.shared.localArchiveZipURL(for: link)
                     {
@@ -291,9 +248,9 @@ struct LinkDetailView: View {
                             Image(systemName: "ellipsis.circle")
                         }
                     }
-                #endif
             }
         }
+        #endif
         .onAppear {
             // Kick off background archive extraction attempt (best-effort)
             #if os(iOS)
@@ -487,6 +444,88 @@ struct ArchiveView: View {
         }
     }
 #endif
+
+// MARK: - Toolbar Modifier
+
+struct InboxToolbarModifier: ViewModifier {
+    @Binding var sort: LinkSort
+    @Binding var showFailedOnly: Bool
+    let syncing: Bool
+    let runSync: () async -> Void
+
+    func body(content: Content) -> some View {
+        content
+            #if os(iOS)
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    Menu {
+                        Picker("Sort", selection: $sort) {
+                            ForEach(LinkSort.allCases, id: \.self) { s in
+                                Text(s.title).tag(s)
+                            }
+                        }
+                        Toggle(isOn: $showFailedOnly) {
+                            Label("Show Failed Only", systemImage: "exclamationmark.triangle")
+                        }
+                    } label: {
+                        Label("Sort & Filter", systemImage: "line.3.horizontal.decrease.circle")
+                    }
+                }
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    Button {
+                        Task { await runSync() }
+                    } label: {
+                        if syncing {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Label("Sync", systemImage: "arrow.clockwise")
+                        }
+                    }
+                    .disabled(syncing)
+                }
+            }
+            #elseif os(macOS)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    HStack {
+                        Menu {
+                            Picker("Sort", selection: $sort) {
+                                ForEach(LinkSort.allCases, id: \.self) { s in
+                                    Text(s.title).tag(s)
+                                }
+                            }
+                            Toggle(isOn: $showFailedOnly) {
+                                Label("Show Failed Only", systemImage: "exclamationmark.triangle")
+                            }
+                        } label: {
+                            Label("Sort & Filter", systemImage: "line.3.horizontal.decrease.circle")
+                        }
+                        Button {
+                            Task { await runSync() }
+                        } label: {
+                            if syncing {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Label("Sync", systemImage: "arrow.clockwise")
+                            }
+                        }
+                        .disabled(syncing)
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                    }
+                }
+            }
+            #endif
+    }
+}
 
 // MARK: - Previews
 
