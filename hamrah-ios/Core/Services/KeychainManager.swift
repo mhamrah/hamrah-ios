@@ -10,12 +10,7 @@ class KeychainManager {
     // Shared Keychain access group for app + extension (optional)
     // Uses AppIdentifierPrefix injected by codesign to form the full identifier, e.g. "TEAMID.app.hamrah.ios"
     // When present, items will be written to/read from this shared access group.
-    private let accessGroup: String? = {
-        if let prefix = Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String {
-            return "\(prefix)app.hamrah.ios"
-        }
-        return nil
-    }()
+    private let accessGroup: String? = nil // AppAccessGroup.value - temporarily disabled due to build issue
 
     // MARK: - Generic Keychain Operations
 

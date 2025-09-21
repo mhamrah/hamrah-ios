@@ -100,12 +100,12 @@ struct DebugLogsView: View {
                                 .font(.headline)
 
                             ShareLink(item: logFileURL) {
-                                Label("Share Log File", systemImage: "square.and.arrow.up")
+                                Label("Share Log File", systemImage: Theme.Icons.share)
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.blue)
+                                    .background(Theme.Colors.primary)
                                     .foregroundColor(.white)
-                                    .cornerRadius(10)
+                                    .cornerRadius(Theme.CornerRadius.button)
                             }
 
                             Spacer()

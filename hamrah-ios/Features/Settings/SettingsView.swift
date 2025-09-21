@@ -172,7 +172,7 @@ struct SettingsView: View {
     private var syncEngineSection: some View {
         Section("Sync Engine") {
             Button {
-                Task { await SyncEngine()._testRunSyncNow(reason: "settings_manual_sync") }
+                Task { await SyncEngine().runSyncNow(reason: "settings_manual_sync") }
             } label: {
                 Label("Run Sync Now", systemImage: "arrow.clockwise")
             }

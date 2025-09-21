@@ -69,6 +69,11 @@ final class SyncEngine: ObservableObject {
         }
     }
 
+    /// Immediately runs a full sync on the current task; awaits completion.
+    func runSyncNow(reason: String = "manual") async {
+        await performSync(reason: reason)
+    }
+
     /// Call from BGProcessingTask (background fetch).
     func triggerBackgroundSync() {
         syncQueue.async { [weak self] in

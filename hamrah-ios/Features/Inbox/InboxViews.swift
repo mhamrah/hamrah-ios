@@ -108,7 +108,7 @@ struct InboxView: View {
     private func runSync() async {
         syncing = true
         defer { syncing = false }
-        await SyncEngine()._testRunSyncNow(reason: "inbox_pull_to_refresh")
+        await SyncEngine().runSyncNow(reason: "inbox_pull_to_refresh")
         // Re-evaluate query after sync
         // Instead of assigning to _links, which is immutable, trigger a state change
         // by updating a dummy state variable or by toggling a boolean
