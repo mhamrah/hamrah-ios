@@ -96,12 +96,13 @@ final class SyncEngine: ObservableObject {
         pathMonitor.start(queue: queue)
     }
 
+    @MainActor
     private func performSync(reason: String) async {
         guard !isSyncing else { return }
         isSyncing = true
         defer { isSyncing = false }
 
-        let context = await modelContainer.mainContext
+        let context = modelContainer.mainContext
         logger.info("Starting sync; reason=\(reason, privacy: .public)")
 
         await syncOutboundLinks(context: context)
@@ -518,7 +519,7 @@ extension ArchiveCacheManager: ArchiveCacheManaging {
                     (response.allHeaderFields["ETag"] as? String)
                     ?? (response.allHeaderFields["Etag"] as? String)
 
-                let (size, finalURL) = try storeDownloadedArchive(
+                let (size, _) = try storeDownloadedArchive(
                     serverId: sid,
                     tempURL: tempURL,
                     etag: eTag

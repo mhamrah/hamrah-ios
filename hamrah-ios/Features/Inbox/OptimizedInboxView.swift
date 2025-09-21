@@ -273,7 +273,9 @@ struct OptimizedInboxView: View {
             queue: .main
         ) { notification in
             if let link = notification.object as? LinkEntity {
-                viewModel.retrySync(for: link)
+                Task { @MainActor in
+                    viewModel.retrySync(for: link)
+                }
             }
         }
 
