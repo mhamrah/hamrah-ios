@@ -158,10 +158,12 @@ class BiometricAuthManager: ObservableObject {
                 case .watchNotAvailable:
                     errorMessage = "Apple Watch unavailable"
             #endif
-            #if os(iOS)
+            #if os(iOS) && compiler(>=6.0)
+            case .companionNotAvailable:
                 if #available(iOS 18.0, *) {
-                    case .companionNotAvailable:
-                        errorMessage = "Companion device unavailable"
+                    errorMessage = "Companion device unavailable"
+                } else {
+                    errorMessage = "Unknown biometric error"
                 }
             #endif
             case .biometryDisconnected:
