@@ -10,11 +10,28 @@ import SwiftUI
 struct RootView: View {
     @StateObject private var nativeAuthManager = NativeAuthManager()
     @StateObject private var biometricManager = BiometricAuthManager()
-    
+    @State private var navPath = NavigationPath()
+
     var body: some View {
-        ProgressiveAuthView()
-            .environmentObject(nativeAuthManager)
-            .environmentObject(biometricManager)
+        NavigationStack(path: $navPath) {
+            ProgressiveAuthView()
+                .environmentObject(nativeAuthManager)
+                .environmentObject(biometricManager)
+                .toolbar {
+                    if nativeAuthManager.isAuthenticated {
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                    }
+                }
+        }
+    }
+
+    /// Helper to reset navigation to the root and show the inbox (when authenticated).
+    func openInboxAsRoot() {
+        navPath = NavigationPath()
     }
 }
 

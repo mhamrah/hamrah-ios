@@ -94,7 +94,35 @@ struct DebugLogsView: View {
             }
             .sheet(isPresented: $showShareSheet) {
                 if let logFileURL = DebugLogger.shared.getLogFileURL() {
-                    ShareSheet(items: [logFileURL])
+                    NavigationView {
+                        VStack(spacing: 20) {
+                            Text("Share Debug Logs")
+                                .font(.headline)
+
+                            ShareLink(item: logFileURL) {
+                                Label("Share Log File", systemImage: Theme.Icons.share)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Theme.Colors.primary)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(Theme.CornerRadius.button)
+                            }
+
+                            Spacer()
+                        }
+                        .padding()
+                        .navigationTitle("Share Logs")
+                        #if os(iOS)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    showShareSheet = false
+                                }
+                            }
+                        }
+                        #endif
+                    }
                 }
             }
         }
@@ -127,63 +155,6 @@ struct DebugLogsView: View {
     }
 }
 
-#if os(iOS)
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-#elseif os(macOS)
-struct ShareSheet: View {
-    let items: [Any]
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("Share Logs")
-                .font(.headline)
-            
-            Text("Log file location:")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            if let url = items.first as? URL {
-                Text(url.path)
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                    .padding()
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(8)
-            }
-            
-            HStack {
-                Button("Open in Finder") {
-                    if let url = items.first as? URL {
-                        NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: url.deletingLastPathComponent().path)
-                    }
-                    dismiss()
-                }
-                
-                Button("Copy Path") {
-                    if let url = items.first as? URL {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(url.path, forType: .string)
-                    }
-                    dismiss()
-                }
-            }
-            .buttonStyle(.bordered)
-        }
-        .padding()
-        .frame(width: 400, height: 200)
-    }
-}
-#endif
 
 #Preview {
     DebugLogsView()

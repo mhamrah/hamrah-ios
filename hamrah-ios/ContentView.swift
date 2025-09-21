@@ -16,70 +16,27 @@ struct ContentView: View {
     @State private var showBiometricSetupPrompt = false
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text(
-                            "Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))"
-                        )
-                    } label: {
-                        Text(
-                            item.timestamp,
-                            format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        NavigationStack {
+            InboxView()
+                .toolbar {
+                    #if os(iOS)
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            NavigationLink {
+                                SettingsView()
+                            } label: {
+                                Image(systemName: "gearshape")
+                            }
+                        }
+                    #else
+                        ToolbarItem(placement: .primaryAction) {
+                            NavigationLink {
+                                SettingsView()
+                            } label: {
+                                Image(systemName: "gearshape")
+                            }
+                        }
+                    #endif
                 }
-                .onDelete(perform: deleteItems)
-                #if os(macOS)
-                    .listStyle(.inset(alternatesRowBackgrounds: true))
-                #else
-                    .listStyle(.automatic)
-                #endif
-            }
-            #if os(macOS)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220)
-                .frame(minWidth: 700, minHeight: 480)
-            #endif
-            .toolbar {
-                #if os(iOS)
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
-                    }
-                #endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-                #if os(iOS)
-                ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink(
-                        destination: MyAccountView().environmentObject(authManager)
-                            .environmentObject(biometricManager)
-                    ) {
-                        Image(systemName: "person.circle")
-                            .font(.title3)
-                    }
-                }
-                #else
-                ToolbarItem(placement: .navigation) {
-                    NavigationLink(
-                        destination: MyAccountView().environmentObject(authManager)
-                            .environmentObject(biometricManager)
-                    ) {
-                        Image(systemName: "person.circle")
-                            .font(.title3)
-                    }
-                }
-                #endif
-            }
-        } detail: {
-            Text("Select an item")
-                #if os(macOS)
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                #endif
         }
         .onAppear {
             checkBiometricSetupPrompt()
@@ -131,8 +88,10 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
-        .environmentObject(NativeAuthManager())
-        .environmentObject(BiometricAuthManager())
+    NavigationStack {
+        InboxView()
+    }
+    .modelContainer(for: LinkEntity.self, inMemory: true)
+    .environmentObject(NativeAuthManager())
+    .environmentObject(BiometricAuthManager())
 }
