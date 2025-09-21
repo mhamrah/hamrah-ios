@@ -539,7 +539,7 @@ struct InboxToolbarModifier: ViewModifier {
         static var previewContainer: ModelContainer = {
             let schema = Schema([
                 LinkEntity.self, ArchiveAsset.self, TagEntity.self, SyncCursor.self,
-                DevicePrefs.self,
+                UserPrefs.self,
             ])
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             let container = try! ModelContainer(for: schema, configurations: config)

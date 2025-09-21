@@ -34,7 +34,7 @@ final class SyncEngine: ObservableObject {
                 ArchiveAsset.self,
                 TagEntity.self,
                 SyncCursor.self,
-                DevicePrefs.self,
+                UserPrefs.self,
                 configurations: config
             )
             self.init(
@@ -126,7 +126,7 @@ final class SyncEngine: ObservableObject {
         )) ?? []
     }
 
-    private func payload(for link: LinkEntity, prefs: DevicePrefs?) -> OutboundLinkPayload {
+    private func payload(for link: LinkEntity, prefs: UserPrefs?) -> OutboundLinkPayload {
         OutboundLinkPayload(
             clientId: link.localId.uuidString,
             originalUrl: link.originalUrl.absoluteString,
@@ -159,8 +159,8 @@ final class SyncEngine: ObservableObject {
         KeychainManager.shared.retrieveString(for: "hamrah_access_token")
     }
 
-    private func currentPrefs(_ context: ModelContext) -> DevicePrefs? {
-        (try? context.fetch(FetchDescriptor<DevicePrefs>()))?.first
+    private func currentPrefs(_ context: ModelContext) -> UserPrefs? {
+        (try? context.fetch(FetchDescriptor<UserPrefs>()))?.first
     }
 
     private func syncOutboundLinks(context: ModelContext) async {
@@ -416,9 +416,9 @@ final class SecureAPILinkClient: LinkAPI {
 
     func postLink(payload: OutboundLinkPayload, token: String?) async throws -> PostLinkResponse {
         let body: [String: Any] = try encodeToJSONObject(payload)
-        // Note: endpoint path includes "/api" to match existing SecureAPIService usage.
+        // Note: endpoint path updated to remove /api prefix
         return try await SecureAPIService.shared.post(
-            endpoint: "/api/v1/links",
+            endpoint: "/v1/links",
             body: body,
             accessToken: token,
             responseType: PostLinkResponse.self
@@ -427,12 +427,12 @@ final class SecureAPILinkClient: LinkAPI {
 
     func getLinks(since: String, limit: Int, token: String?) async throws -> DeltaResponse {
         var comps = URLComponents()
-        comps.path = "/api/v1/links"
+        comps.path = "/v1/links"
         comps.queryItems = [
             URLQueryItem(name: "since", value: since),
             URLQueryItem(name: "limit", value: "\(limit)"),
         ]
-        let endpoint = comps.string ?? "/api/v1/links"
+        let endpoint = comps.string ?? "/v1/links"
         return try await SecureAPIService.shared.get(
             endpoint: endpoint,
             accessToken: token,
@@ -478,7 +478,7 @@ extension ArchiveCacheManager: ArchiveCacheManaging {
 
         for link in links {
             guard let sid = link.serverId else { continue }
-            let endpoint = "/api/v1/links/\(sid)/archive"
+            let endpoint = "/v1/links/\(sid)/archive"
 
             // Ensure ArchiveAsset exists
             if link.archive == nil {
@@ -543,9 +543,8 @@ extension ArchiveCacheManager: ArchiveCacheManaging {
             }
         }
 
-        // Enforce quota from DevicePrefs
-        let prefs = (try? context.fetch(FetchDescriptor<DevicePrefs>()))?.first
-        enforceQuota(quotaMB: prefs?.archiveCacheQuotaMB ?? Self.defaultQuotaMB)
+        // Enforce quota using default value (device preferences removed)
+        enforceQuota(quotaMB: ArchiveCacheManager.defaultQuotaMB)
 
         do { try context.save() } catch {
             logger.error(

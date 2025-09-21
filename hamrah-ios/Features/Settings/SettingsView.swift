@@ -9,8 +9,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
 
-    // Backing store (SwiftData) for a single DevicePrefs instance
-    @Query private var prefsQuery: [DevicePrefs]
+    // Backing store (SwiftData) for a single UserPrefs instance
+    @Query private var prefsQuery: [UserPrefs]
 
     // UI State
     @State private var isLoading = false
@@ -19,10 +19,8 @@ struct SettingsView: View {
     @State private var infoMessage: String?
 
     // Editable preferences
-    @State private var pushEnabled = false
-    @State private var lastPushToken: String? = nil
+    @State private var defaultModel: String = "gpt-4o-mini"
     @State private var preferredModels: Set<String> = []
-    @State private var archiveCacheQuotaMB: Int = 512
 
     // Model catalog
     @State private var availableModels: [String] = defaultSuggestedModels
@@ -39,7 +37,6 @@ struct SettingsView: View {
     var body: some View {
         Form {
             serverSyncSection
-            notificationsSection
             modelsSection
             archiveCacheSection
             syncEngineSection
@@ -90,51 +87,66 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var notificationsSection: some View {
-        Section("Notifications") {
-            Toggle(isOn: $pushEnabled) {
-                Label("Enable Push Notifications", systemImage: "bell.badge")
-            }
-            .onChange(of: pushEnabled) { _, _ in debounceAutosave() }
-
-            HStack {
-                Label("Last Registered Token", systemImage: "checkmark.seal")
-                Spacer()
-                Text(
-                    lastPushToken.flatMap({ $0.isEmpty ? nil : "•••" + $0.suffix(6) }) ?? "None"
-                )
-                .foregroundStyle(.secondary)
-                .font(.callout)
-            }
-
-            Button("Register For Push (OS Settings)") {
-                openSystemNotificationsSettings()
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
-    @ViewBuilder
     private var modelsSection: some View {
-        Section("Models") {
+        Section("AI Models") {
+            // Default model picker
+            Picker("Default Model", selection: $defaultModel) {
+                ForEach(availableModels, id: \.self) { model in
+                    Text(model).tag(model)
+                }
+            }
+            .onChange(of: defaultModel) { _, _ in debounceAutosave() }
+
+            // Preferred models multi-selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Preferred Models (\(preferredModels.count) selected)")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: 8) {
+                    ForEach(availableModels, id: \.self) { model in
+                        Button(action: {
+                            if preferredModels.contains(model) {
+                                preferredModels.remove(model)
+                            } else {
+                                preferredModels.insert(model)
+                            }
+                            debounceAutosave()
+                        }) {
+                            Text(model)
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    preferredModels.contains(model) ?
+                                        Color.accentColor : Color.secondary.opacity(0.2)
+                                )
+                                .foregroundColor(
+                                    preferredModels.contains(model) ? .white : .primary
+                                )
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            // Model management
             if isFetchingModels {
                 HStack {
-                    ProgressView()
+                    ProgressView().controlSize(.small)
                     Text("Fetching available models…")
                 }
             } else {
-                if availableModels.isEmpty {
-                    Text("No models available from server. Using local defaults.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Text("Models: \(availableModels.count) available")
+                Text("Available: \(availableModels.count) models")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
             HStack {
-                Button("Refresh Model List") { Task { await fetchModelCatalog() } }
+                Button("Refresh Models") { Task { await fetchModelCatalog() } }
                 Spacer()
-                Button("Clear Selection") {
+                Button("Clear Preferred") {
                     preferredModels = []
                     debounceAutosave()
                 }
@@ -146,23 +158,8 @@ struct SettingsView: View {
     @ViewBuilder
     private var archiveCacheSection: some View {
         Section("Archive Cache") {
-            Stepper(
-                value: $archiveCacheQuotaMB,
-                in: 128...4096,
-                step: 64
-            ) {
-                HStack {
-                    Label("Cache Quota", systemImage: "externaldrive")
-                    Spacer()
-                    Text("\(archiveCacheQuotaMB) MB")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .onChange(of: archiveCacheQuotaMB) { _, _ in debounceAutosave() }
-
             Button("Enforce Cache Quota Now") {
-                ArchiveCacheManager.shared.enforceQuota(quotaMB: archiveCacheQuotaMB)
+                ArchiveCacheManager.shared.enforceQuota(quotaMB: 512)
             }
             .buttonStyle(.bordered)
         }
@@ -202,18 +199,14 @@ struct SettingsView: View {
 
     private func seedLocalFromStore() {
         let prefs = fetchOrCreatePrefs()
-        pushEnabled = prefs.pushEnabled
-        lastPushToken = prefs.lastPushToken
+        defaultModel = prefs.defaultModel
         preferredModels = Set(prefs.preferredModels)
-        archiveCacheQuotaMB = prefs.archiveCacheQuotaMB
     }
 
     private func applyToStore() {
         let prefs = fetchOrCreatePrefs()
-        prefs.pushEnabled = pushEnabled
-        prefs.lastPushToken = lastPushToken
+        prefs.defaultModel = defaultModel
         prefs.preferredModels = Array(preferredModels)
-        prefs.archiveCacheQuotaMB = archiveCacheQuotaMB
         prefs.lastUpdatedAt = Date()
 
         do { try modelContext.save() } catch {
@@ -221,15 +214,13 @@ struct SettingsView: View {
         }
     }
 
-    private func fetchOrCreatePrefs() -> DevicePrefs {
+    private func fetchOrCreatePrefs() -> UserPrefs {
         if let existing = prefsQuery.first {
             return existing
         }
-        let created = DevicePrefs(
-            pushEnabled: pushEnabled,
-            lastPushToken: lastPushToken,
-            preferredModels: Array(preferredModels),
-            archiveCacheQuotaMB: archiveCacheQuotaMB
+        let created = UserPrefs(
+            defaultModel: defaultModel,
+            preferredModels: Array(preferredModels)
         )
         modelContext.insert(created)
         return created
@@ -251,10 +242,10 @@ struct SettingsView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            let dto: DevicePrefsDTO = try await SecureAPIService.shared.get(
-                endpoint: "/api/v1/device-prefs",
+            let dto: UserPrefsDTO = try await SecureAPIService.shared.get(
+                endpoint: "/v1/user/prefs",
                 accessToken: token,
-                responseType: DevicePrefsDTO.self
+                responseType: UserPrefsDTO.self
             )
             await MainActor.run {
                 mapDTOToState(dto)
@@ -278,11 +269,11 @@ struct SettingsView: View {
         defer { isSaving = false }
         do {
             let dto = makeDTOFromState()
-            let _: DevicePrefsDTO = try await SecureAPIService.shared.post(
-                endpoint: "/api/v1/device-prefs",
+            let _: UserPrefsDTO = try await SecureAPIService.shared.put(
+                endpoint: "/v1/user/prefs",
                 body: dto.asJSON(),
                 accessToken: token,
-                responseType: DevicePrefsDTO.self
+                responseType: UserPrefsDTO.self
             )
             await MainActor.run {
                 applyToStore()
@@ -306,99 +297,86 @@ struct SettingsView: View {
             struct CatalogResponse: Codable { let models: [String] }
             let token = accessToken()
             let resp: CatalogResponse = try await SecureAPIService.shared.get(
-                endpoint: "/api/v1/models",
+                endpoint: "/v1/models",
                 accessToken: token,
                 responseType: CatalogResponse.self
             )
             await MainActor.run {
-                if !resp.models.isEmpty {
-                    availableModels = resp.models
-                }
+                availableModels = resp.models.isEmpty ? Self.defaultSuggestedModels : resp.models
             }
         } catch {
-            // Non-fatal: keep defaults
+            // Silently fall back to defaults if the endpoint is not implemented
+            await MainActor.run {
+                availableModels = Self.defaultSuggestedModels
+            }
         }
     }
 
-    private func toggleModelSelection(_ model: String) {
-        if preferredModels.contains(model) {
-            preferredModels.remove(model)
-        } else {
-            preferredModels.insert(model)
-        }
-        debounceAutosave()
-    }
-
-    // MARK: - Utilities
-
-    private func openSystemNotificationsSettings() {
-        PlatformBridge.openAppSettings()
-    }
+    // MARK: - Actions
 
     private func copyAPIPromptToClipboard() {
-        let text = SettingsAPIPrompt.prompt
-        PlatformBridge.copyToClipboard(text)
+        #if os(iOS)
+            UIPasteboard.general.string = SettingsAPIPrompt.prompt
+        #elseif os(macOS)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(SettingsAPIPrompt.prompt, forType: .string)
+        #endif
         infoMessage = "API prompt copied to clipboard."
-    }
-
-    private func debounceAutosave() {
-        // Fire a delayed save to avoid spamming the server for every small change
-        // Only when signed in; otherwise just persist locally.
-        applyToStore()
     }
 
     private func accessToken() -> String? {
         KeychainManager.shared.retrieveString(for: "hamrah_access_token")
     }
 
-    private func mapDTOToState(_ dto: DevicePrefsDTO) {
-        pushEnabled = dto.push_enabled
-        lastPushToken = dto.push_token
+    private func mapDTOToState(_ dto: UserPrefsDTO) {
+        defaultModel = dto.default_model
         preferredModels = Set(dto.preferred_models)
-        archiveCacheQuotaMB = dto.archive_cache_quota_mb
     }
 
-    private func makeDTOFromState() -> DevicePrefsDTO {
-        DevicePrefsDTO(
-            push_enabled: pushEnabled,
-            push_token: lastPushToken,
-            preferred_models: Array(preferredModels),
-            archive_cache_quota_mb: archiveCacheQuotaMB
+    private func makeDTOFromState() -> UserPrefsDTO {
+        UserPrefsDTO(
+            default_model: defaultModel,
+            preferred_models: Array(preferredModels)
         )
+    }
+
+    // MARK: - Autosave
+
+    @State private var debounceTask: Task<Void, Never>?
+
+    private func debounceAutosave() {
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(for: .seconds(1))
+            if !Task.isCancelled {
+                await MainActor.run { applyToStore() }
+            }
+        }
     }
 }
 
 // MARK: - DTOs and helpers
 
-struct DevicePrefsDTO: Codable {
-    var push_enabled: Bool
-    var push_token: String?
+struct UserPrefsDTO: Codable {
+    var default_model: String
     var preferred_models: [String]
-    var archive_cache_quota_mb: Int
     var last_updated_at: Date?
 
     init(
-        push_enabled: Bool,
-        push_token: String? = nil,
+        default_model: String,
         preferred_models: [String],
-        archive_cache_quota_mb: Int,
         last_updated_at: Date? = nil
     ) {
-        self.push_enabled = push_enabled
-        self.push_token = push_token
+        self.default_model = default_model
         self.preferred_models = preferred_models
-        self.archive_cache_quota_mb = archive_cache_quota_mb
         self.last_updated_at = last_updated_at
     }
 
     func asJSON() -> [String: Any] {
-        var dict: [String: Any] = [
-            "push_enabled": push_enabled,
+        [
+            "default_model": default_model,
             "preferred_models": preferred_models,
-            "archive_cache_quota_mb": archive_cache_quota_mb,
         ]
-        if let push_token { dict["push_token"] = push_token }
-        return dict
     }
 }
 
@@ -406,50 +384,48 @@ struct DevicePrefsDTO: Codable {
 
 enum SettingsAPIPrompt {
     static let prompt: String = """
-        Backend API design for device-level settings synced with iOS client.
+        Backend API design for Hamrah iOS client user preferences.
 
-        Endpoints:
-        - GET /api/v1/device-prefs
-          Returns JSON:
+        Required Endpoints:
+        - GET /v1/user/prefs
+          Returns user preferences:
           {
-            "push_enabled": bool,
-            "push_token": string | null,
+            "default_model": string,
             "preferred_models": string[],
-            "archive_cache_quota_mb": number,
             "last_updated_at": RFC3339 string
           }
 
-        - POST /api/v1/device-prefs
-          Accepts JSON:
+        - PUT /v1/user/prefs
+          Updates user preferences:
           {
-            "push_enabled": bool,
-            "push_token": string | null,
-            "preferred_models": string[],
-            "archive_cache_quota_mb": number
+            "default_model": string,
+            "preferred_models": string[]
           }
           Responds with same shape as GET.
 
-        - GET /api/v1/models
-          Returns the available content model identifiers:
+        - GET /v1/models
+          Returns the available AI model identifiers from Cloudflare AI platform:
           { "models": string[] }
+
+        - POST /v1/links
+          Create/sync new links from iOS app
 
         Auth:
         - Bearer access token required.
-        - Include App Attestation headers from the iOS client; treat simulator or macOS stubs with reduced trust.
+        - Include App Attestation headers from the iOS client.
 
         Semantics:
-        - DevicePrefs is scoped to the authenticated user + device (server may identify device via device identifier or APNs token). If multi-device merge is desired, reconcile by updated_at, and compute a user-level "effective" prefs if needed.
-        - archive_cache_quota_mb is advisory; the device enforces it locally via LRU eviction.
-        - preferred_models influences summarization/ranking requests submitted by the client.
+        - User preferences are scoped to authenticated user (not device-specific).
+        - default_model is the user's primary AI model choice for content processing.
+        - preferred_models is an additional list of models the user wants available.
+        - Model selection influences summarization/ranking requests submitted by the client.
 
         Validation:
-        - preferred_models must be subset of /api/v1/models if that endpoint exists; otherwise, free-form strings are accepted.
-        - archive_cache_quota_mb: clamp to [128, 4096] MB.
-        - push_token: optional, opaque string; store last seen token per user+device.
+        - default_model and preferred_models must be subset of /v1/models.
 
         Notes:
-        - Avoid storing sensitive data in UserDefaults; client persists to Keychain/SwiftData as needed.
-        - Server may emit push notifications to refresh link deltas when content is processed.
+        - /v1/models endpoint should query Cloudflare AI platform for available models
+        - Models are used for content processing and summarization
         """
 }
 
@@ -458,31 +434,9 @@ enum SettingsAPIPrompt {
 #if DEBUG
     struct SettingsView_Previews: PreviewProvider {
         static var previews: some View {
-            NavigationStack {
+            NavigationView {
                 SettingsView()
-                    .modelContainer(previewContainer)
             }
         }
-
-        static var previewContainer: ModelContainer = {
-            let schema = Schema([
-                LinkEntity.self, ArchiveAsset.self, TagEntity.self, SyncCursor.self,
-                DevicePrefs.self,
-            ])
-            let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try! ModelContainer(for: schema, configurations: config)
-
-            let ctx = ModelContext(container)
-            let prefs = DevicePrefs(
-                pushEnabled: true,
-                lastPushToken: "apns_dev_ABC123",
-                preferredModels: ["gpt-4o-mini", "claude-3.5-sonnet"],
-                archiveCacheQuotaMB: 512
-            )
-            ctx.insert(prefs)
-            try? ctx.save()
-
-            return container
-        }()
     }
 #endif

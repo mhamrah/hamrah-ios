@@ -120,6 +120,23 @@ class SecureAPIService: ObservableObject {
         )
     }
 
+    func put<T: Codable>(
+        endpoint: String,
+        body: [String: Any],
+        accessToken: String?,
+        responseType: T.Type,
+        customBaseURL: String? = nil
+    ) async throws -> T {
+        return try await makeSecureRequest(
+            endpoint: endpoint,
+            method: .PUT,
+            body: body,
+            accessToken: accessToken,
+            responseType: responseType,
+            customBaseURL: customBaseURL
+        )
+    }
+
     func delete<T: Codable>(
         endpoint: String,
         body: [String: Any]? = nil,

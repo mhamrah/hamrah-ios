@@ -20,7 +20,7 @@ final class ShareExtensionDataStack {
                 ArchiveAsset.self,
                 TagEntity.self,
                 SyncCursor.self,
-                DevicePrefs.self,
+                UserPrefs.self,
                 configurations: config
             )
         } catch {
