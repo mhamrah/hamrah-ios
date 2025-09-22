@@ -101,7 +101,36 @@ class NativeAuthManager: NSObject, ObservableObject {
             case name
             case picture
             case authMethod = "auth_method"
-            case createdAt = "created_at"
+            case createdAt
+            case created_at
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(String.self, forKey: .id)
+            email = try container.decode(String.self, forKey: .email)
+            name = try container.decodeIfPresent(String.self, forKey: .name)
+            picture = try container.decodeIfPresent(String.self, forKey: .picture)
+            authMethod = try container.decode(String.self, forKey: .authMethod)
+            
+            // Handle both "createdAt" and "created_at" field names
+            if let timestamp = try container.decodeIfPresent(String.self, forKey: .createdAt) {
+                createdAt = timestamp
+            } else if let timestamp = try container.decodeIfPresent(String.self, forKey: .created_at) {
+                createdAt = timestamp
+            } else {
+                createdAt = nil
+            }
+        }
+        
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(id, forKey: .id)
+            try container.encode(email, forKey: .email)
+            try container.encodeIfPresent(name, forKey: .name)
+            try container.encodeIfPresent(picture, forKey: .picture)
+            try container.encode(authMethod, forKey: .authMethod)
+            try container.encodeIfPresent(createdAt, forKey: .createdAt)
         }
     }
 
@@ -204,6 +233,16 @@ class NativeAuthManager: NSObject, ObservableObject {
             allowCredentials = try container.decodeIfPresent([PublicKeyCredentialDescriptor].self, forKey: .allowCredentials)
             userVerification = try container.decodeIfPresent(String.self, forKey: .userVerification)
             challengeId = try container.decode(String.self, forKey: .challengeId)
+        }
+        
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(challenge, forKey: .challenge)
+            try container.encodeIfPresent(timeout, forKey: .timeout)
+            try container.encode(rpId, forKey: .rpId)
+            try container.encodeIfPresent(allowCredentials, forKey: .allowCredentials)
+            try container.encodeIfPresent(userVerification, forKey: .userVerification)
+            try container.encode(challengeId, forKey: .challengeId)
         }
     }
 
