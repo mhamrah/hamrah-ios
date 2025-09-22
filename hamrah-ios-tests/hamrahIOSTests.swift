@@ -237,65 +237,29 @@ struct ManualLoginOptionsTests {
     
     @Test("Auth response handles different token field names")
     func testAuthResponseTokenFieldHandling() async throws {
-        // Given: Auth response JSON with different token field names
+        // Given: Auth response JSON with access_token field (snake_case)
         
-        // Test accessToken field
-        let jsonData1 = """
-        {
-            "success": true,
-            "user": {
-                "id": "test-id",
-                "email": "test@example.com", 
-                "name": "Test User",
-                "auth_method": "google",
-                "createdAt": "2023-01-01T00:00:00Z"
-            },
-            "accessToken": "test-token-1"
-        }
-        """.data(using: .utf8)!
-        
-        // Test access_token field
-        let jsonData2 = """
+        let jsonData = """
         {
             "success": true,
             "user": {
                 "id": "test-id",
                 "email": "test@example.com",
                 "name": "Test User", 
-                "auth_method": "apple",
-                "createdAt": "2023-01-01T00:00:00Z"
+                "auth_method": "google",
+                "created_at": "2023-01-01T00:00:00Z"
             },
-            "access_token": "test-token-2"
+            "access_token": "test-token"
         }
         """.data(using: .utf8)!
         
-        // Test token field
-        let jsonData3 = """
-        {
-            "success": true,
-            "user": {
-                "id": "test-id",
-                "email": "test@example.com",
-                "name": "Test User",
-                "auth_method": "passkey", 
-                "createdAt": "2023-01-01T00:00:00Z"
-            },
-            "token": "test-token-3"
-        }
-        """.data(using: .utf8)!
+        // When: Decoding the response
+        let response = try JSONDecoder().decode(NativeAuthManager.AuthResponse.self, from: jsonData)
         
-        // When: Decoding the responses
-        let response1 = try JSONDecoder().decode(NativeAuthManager.AuthResponse.self, from: jsonData1)
-        let response2 = try JSONDecoder().decode(NativeAuthManager.AuthResponse.self, from: jsonData2)
-        let response3 = try JSONDecoder().decode(NativeAuthManager.AuthResponse.self, from: jsonData3)
-        
-        // Then: All should decode successfully with correct tokens
-        #expect(response1.accessToken == "test-token-1")
-        #expect(response2.accessToken == "test-token-2") 
-        #expect(response3.accessToken == "test-token-3")
-        #expect(response1.success == true)
-        #expect(response2.success == true)
-        #expect(response3.success == true)
+        // Then: Should decode successfully with correct token
+        #expect(response.accessToken == "test-token")
+        #expect(response.success == true)
+        #expect(response.user?.email == "test@example.com")
     }
 }
 
@@ -316,11 +280,11 @@ struct AccountCreationTests {
                 "name": "New User",
                 "picture": "https://example.com/picture.jpg",
                 "auth_method": "google",
-                "createdAt": "2023-12-01T00:00:00Z"
+                "created_at": "2023-12-01T00:00:00Z"
             },
-            "accessToken": "new-account-token",
-            "refreshToken": "new-refresh-token",
-            "expiresIn": 3600
+            "access_token": "new-account-token",
+            "refresh_token": "new-refresh-token",
+            "expires_in": 3600
         }
         """.data(using: .utf8)!
         
@@ -499,16 +463,16 @@ struct PasskeyRegistrationTests {
             "options": {
                 "challenge": "dGVzdC1jaGFsbGVuZ2U",
                 "timeout": 60000,
-                "rpId": "hamrah.app",
-                "allowCredentials": [
+                "rp_id": "hamrah.app",
+                "allow_credentials": [
                     {
                         "type": "public-key",
                         "id": "dGVzdC1jcmVkZW50aWFs", 
                         "transports": ["internal"]
                     }
                 ],
-                "userVerification": "required",
-                "challengeId": "challenge-123"
+                "user_verification": "required",
+                "challenge_id": "challenge-123"
             }
         }
         """.data(using: .utf8)!

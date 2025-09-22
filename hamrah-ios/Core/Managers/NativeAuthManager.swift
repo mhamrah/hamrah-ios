@@ -101,11 +101,10 @@ class NativeAuthManager: NSObject, ObservableObject {
             case name
             case picture
             case authMethod = "auth_method"
-            case createdAt
-            case created_at
+            case createdAt = "created_at"
         }
         
-        // Explicit memberwise initializer (required when custom init(from:) is added)
+        // Explicit memberwise initializer
         init(id: String, email: String, name: String?, picture: String?, authMethod: String, createdAt: String?) {
             self.id = id
             self.email = email
@@ -113,34 +112,6 @@ class NativeAuthManager: NSObject, ObservableObject {
             self.picture = picture
             self.authMethod = authMethod
             self.createdAt = createdAt
-        }
-        
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            id = try container.decode(String.self, forKey: .id)
-            email = try container.decode(String.self, forKey: .email)
-            name = try container.decodeIfPresent(String.self, forKey: .name)
-            picture = try container.decodeIfPresent(String.self, forKey: .picture)
-            authMethod = try container.decode(String.self, forKey: .authMethod)
-            
-            // Handle both "createdAt" and "created_at" field names
-            if let timestamp = try container.decodeIfPresent(String.self, forKey: .createdAt) {
-                createdAt = timestamp
-            } else if let timestamp = try container.decodeIfPresent(String.self, forKey: .created_at) {
-                createdAt = timestamp
-            } else {
-                createdAt = nil
-            }
-        }
-        
-        func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(id, forKey: .id)
-            try container.encode(email, forKey: .email)
-            try container.encodeIfPresent(name, forKey: .name)
-            try container.encodeIfPresent(picture, forKey: .picture)
-            try container.encode(authMethod, forKey: .authMethod)
-            try container.encodeIfPresent(createdAt, forKey: .createdAt)
         }
     }
 
@@ -156,30 +127,17 @@ class NativeAuthManager: NSObject, ObservableObject {
         enum CodingKeys: String, CodingKey {
             case success
             case user
-            case accessToken
-            case access_token
+            case accessToken = "access_token"
             case refreshToken = "refresh_token"
             case expiresIn = "expires_in"
             case error
-            case token
         }
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             success = try container.decode(Bool.self, forKey: .success)
             user = try container.decodeIfPresent(HamrahUser.self, forKey: .user)
-            
-            // Try different field names for access token
-            if let token = try container.decodeIfPresent(String.self, forKey: .accessToken) {
-                accessToken = token
-            } else if let token = try container.decodeIfPresent(String.self, forKey: .access_token) {
-                accessToken = token
-            } else if let token = try container.decodeIfPresent(String.self, forKey: .token) {
-                accessToken = token
-            } else {
-                accessToken = nil
-            }
-            
+            accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken)
             refreshToken = try container.decodeIfPresent(String.self, forKey: .refreshToken)
             expiresIn = try container.decodeIfPresent(Int.self, forKey: .expiresIn)
             error = try container.decodeIfPresent(String.self, forKey: .error)
@@ -219,40 +177,10 @@ class NativeAuthManager: NSObject, ObservableObject {
         enum CodingKeys: String, CodingKey {
             case challenge
             case timeout
-            case rpId
-            case rp_id
+            case rpId = "rp_id"
             case allowCredentials = "allow_credentials"
             case userVerification = "user_verification"
             case challengeId = "challenge_id"
-        }
-        
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            challenge = try container.decode(String.self, forKey: .challenge)
-            timeout = try container.decodeIfPresent(Int.self, forKey: .timeout)
-            
-            // Try both "rpId" and "rp_id" field names
-            if let id = try container.decodeIfPresent(String.self, forKey: .rpId) {
-                rpId = id
-            } else if let id = try container.decodeIfPresent(String.self, forKey: .rp_id) {
-                rpId = id
-            } else {
-                throw DecodingError.keyNotFound(CodingKeys.rpId, DecodingError.Context(codingPath: container.codingPath, debugDescription: "Missing rpId or rp_id field"))
-            }
-            
-            allowCredentials = try container.decodeIfPresent([PublicKeyCredentialDescriptor].self, forKey: .allowCredentials)
-            userVerification = try container.decodeIfPresent(String.self, forKey: .userVerification)
-            challengeId = try container.decode(String.self, forKey: .challengeId)
-        }
-        
-        func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(challenge, forKey: .challenge)
-            try container.encodeIfPresent(timeout, forKey: .timeout)
-            try container.encode(rpId, forKey: .rpId)
-            try container.encodeIfPresent(allowCredentials, forKey: .allowCredentials)
-            try container.encodeIfPresent(userVerification, forKey: .userVerification)
-            try container.encode(challengeId, forKey: .challengeId)
         }
     }
 
