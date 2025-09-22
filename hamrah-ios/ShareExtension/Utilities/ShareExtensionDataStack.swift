@@ -14,10 +14,11 @@ final class ShareExtensionDataStack {
     /// the main app to read/sync them when available.
     static let shared: ModelContainer = {
         do {
-            let config = ModelConfiguration(isStoredInMemoryOnly: false, groupContainer: .identifier(appGroupId))
+            let config = ModelConfiguration(
+                isStoredInMemoryOnly: false, groupContainer: .identifier(appGroupId))
             return try ModelContainer(
                 for: LinkEntity.self,
-                ArchiveAsset.self,
+
                 TagEntity.self,
                 SyncCursor.self,
                 UserPrefs.self,

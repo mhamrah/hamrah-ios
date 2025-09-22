@@ -35,12 +35,6 @@ struct LinkCard: View {
                     HStack(spacing: Theme.Spacing.xsmall) {
                         StatusIndicator(status: link.status)
 
-                        if link.archive?.isReady == true {
-                            Image(systemName: Theme.Icons.archive)
-                                .font(.caption2)
-                                .foregroundColor(Theme.Colors.success)
-                        }
-
                         if !link.tags.isEmpty {
                             Image(systemName: Theme.Icons.tag)
                                 .font(.caption2)
@@ -113,16 +107,6 @@ struct LinkCard: View {
         } label: {
             Label("Open Original", systemImage: Theme.Icons.web)
         }
-
-        #if os(iOS)
-            if let localArchive = ArchiveCacheManager.shared.localArchiveZipURL(for: link) {
-                Button {
-                    ArchiveOpener.openArchive(at: localArchive)
-                } label: {
-                    Label("Open Archive", systemImage: Theme.Icons.archive)
-                }
-            }
-        #endif
 
         Button {
             copyURL()

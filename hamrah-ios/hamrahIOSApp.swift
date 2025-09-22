@@ -7,8 +7,9 @@
 
 import SwiftData
 import SwiftUI
+
 #if os(iOS)
-import BackgroundTasks
+    import BackgroundTasks
 #endif
 
 @main
@@ -20,7 +21,7 @@ struct hamrahIOSApp: App {
                 for:
                     Item.self,
                 LinkEntity.self,
-                ArchiveAsset.self,
+
                 TagEntity.self,
                 SyncCursor.self,
                 UserPrefs.self,
@@ -34,28 +35,30 @@ struct hamrahIOSApp: App {
     // Background sync registration - iOS only
     init() {
         #if os(iOS)
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: "app.hamrah.ios.sync", using: nil) {
-            task in
-            Task {
-                SyncEngine().triggerBackgroundSync()
-                task.setTaskCompleted(success: true)
+            BGTaskScheduler.shared.register(
+                forTaskWithIdentifier: "app.hamrah.ios.sync", using: nil
+            ) {
+                task in
+                Task {
+                    SyncEngine().triggerBackgroundSync()
+                    task.setTaskCompleted(success: true)
+                }
             }
-        }
-        scheduleBackgroundSync()
+            scheduleBackgroundSync()
         #endif
     }
 
     #if os(iOS)
-    private func scheduleBackgroundSync() {
-        let request = BGProcessingTaskRequest(identifier: "app.hamrah.ios.sync")
-        request.requiresNetworkConnectivity = true
-        request.requiresExternalPower = false
-        do {
-            try BGTaskScheduler.shared.submit(request)
-        } catch {
-            print("Failed to submit BGProcessingTask: \(error)")
+        private func scheduleBackgroundSync() {
+            let request = BGProcessingTaskRequest(identifier: "app.hamrah.ios.sync")
+            request.requiresNetworkConnectivity = true
+            request.requiresExternalPower = false
+            do {
+                try BGTaskScheduler.shared.submit(request)
+            } catch {
+                print("Failed to submit BGProcessingTask: \(error)")
+            }
         }
-    }
     #endif
 
     var body: some Scene {

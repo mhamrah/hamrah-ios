@@ -135,7 +135,6 @@ struct LinkQueryDescriptors {
     static func filtered(
         searchTerm: String? = nil,
         status: String? = nil,
-        hasArchive: Bool? = nil,
         tags: [String] = [],
         sort: LinkSort = .recent,
         limit: Int = 50
@@ -158,21 +157,6 @@ struct LinkQueryDescriptors {
         if let status = status {
             let statusPredicate = #Predicate<LinkEntity> { $0.status == status }
             predicates.append(statusPredicate)
-        }
-
-        // Archive predicate
-        if let hasArchive = hasArchive {
-            if hasArchive {
-                let archivePredicate = #Predicate<LinkEntity> {
-                    $0.archive != nil && $0.archive?.isReady == true
-                }
-                predicates.append(archivePredicate)
-            } else {
-                let noArchivePredicate = #Predicate<LinkEntity> {
-                    $0.archive == nil || $0.archive?.isReady == false
-                }
-                predicates.append(noArchivePredicate)
-            }
         }
 
         // Tags predicate
@@ -249,26 +233,6 @@ struct TagQueryDescriptors {
         // Note: This would ideally sort by link count, but SwiftData doesn't support
         // computed properties in predicates yet, so we'll sort by name for now
         descriptor.sortBy = [SortDescriptor(\.name, order: .forward)]
-        return descriptor
-    }
-}
-
-// MARK: - Archive Query Descriptors
-
-struct ArchiveQueryDescriptors {
-    static func ready() -> FetchDescriptor<ArchiveAsset> {
-        var descriptor = FetchDescriptor<ArchiveAsset>(
-            predicate: #Predicate<ArchiveAsset> { $0.isReady == true }
-        )
-        descriptor.sortBy = [SortDescriptor(\.link.createdAt, order: .reverse)]
-        return descriptor
-    }
-
-    static func pending() -> FetchDescriptor<ArchiveAsset> {
-        var descriptor = FetchDescriptor<ArchiveAsset>(
-            predicate: #Predicate<ArchiveAsset> { $0.isReady == false }
-        )
-        descriptor.sortBy = [SortDescriptor(\.link.createdAt, order: .reverse)]
         return descriptor
     }
 }

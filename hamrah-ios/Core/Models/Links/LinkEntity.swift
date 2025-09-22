@@ -34,10 +34,6 @@ final class LinkEntity {
     @Relationship(deleteRule: .nullify, inverse: \TagEntity.links)
     var tags: [TagEntity] = []
 
-    // MARK: - Relationships
-    @Relationship(deleteRule: .cascade, inverse: \ArchiveAsset.link)
-    var archive: ArchiveAsset?
-
     // MARK: - Init
     init(
         originalUrl: URL,
@@ -58,7 +54,7 @@ final class LinkEntity {
         summaryLong: String? = nil,
         lang: String? = nil,
         tags: [TagEntity] = [],
-        archive: ArchiveAsset? = nil,
+
         serverId: String? = nil
     ) {
         self.originalUrl = originalUrl
@@ -79,7 +75,7 @@ final class LinkEntity {
         self.summaryLong = summaryLong
         self.lang = lang
         self.tags = tags
-        self.archive = archive
+
         self.serverId = serverId
     }
 }

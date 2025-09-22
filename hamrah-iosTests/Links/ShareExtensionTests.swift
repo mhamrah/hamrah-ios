@@ -9,7 +9,6 @@ final class ShareExtensionTests: XCTestCase {
 
     final class InMemoryStore {
         var links: [LinkEntity] = []
-        var archives: [ArchiveAsset] = []
 
         @discardableResult
         func upsert(
@@ -47,10 +46,6 @@ final class ShareExtensionTests: XCTestCase {
                     createdAt: now
                 )
                 links.append(link)
-                // Insert paired ArchiveAsset
-                let archive = ArchiveAsset(link: link, state: "none")
-                archives.append(archive)
-                link.archive = archive
                 return link
             }
         }
@@ -58,7 +53,7 @@ final class ShareExtensionTests: XCTestCase {
 
     // MARK: - Tests
 
-    func testUpsert_insertsNewLinkAndArchive() {
+    func testUpsert_insertsNewLink() {
         let store = InMemoryStore()
         let url = URL(string: "https://example.com/foo")!
         let now = Date()
@@ -72,14 +67,12 @@ final class ShareExtensionTests: XCTestCase {
         )
 
         XCTAssertEqual(store.links.count, 1)
-        XCTAssertEqual(store.archives.count, 1)
         XCTAssertEqual(link.originalUrl, url)
         XCTAssertEqual(link.canonicalUrl, url)
         XCTAssertEqual(link.status, "queued")
         XCTAssertEqual(link.saveCount, 1)
         XCTAssertEqual(link.title, "Title")
         XCTAssertEqual(link.snippet, "Snippet")
-        XCTAssertEqual(link.archive?.state, "none")
         XCTAssertEqual(link.createdAt, now)
         XCTAssertEqual(link.updatedAt, now)
     }

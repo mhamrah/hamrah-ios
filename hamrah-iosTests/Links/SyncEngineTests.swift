@@ -31,13 +31,6 @@ final class SyncEngineTests: XCTestCase {
         }
     }
 
-    final class MockArchiveManager: ArchiveCacheManaging {
-        var prefetchCalled = false
-        func prefetchAndEvictArchives(context: ModelContext) {
-            prefetchCalled = true
-        }
-    }
-
     enum TestError: Error {
         case network
     }
@@ -49,7 +42,7 @@ final class SyncEngineTests: XCTestCase {
         return try ModelContainer(
             for:
                 LinkEntity.self,
-            ArchiveAsset.self,
+
             TagEntity.self,
             SyncCursor.self,
             UserPrefs.self,
@@ -90,8 +83,7 @@ final class SyncEngineTests: XCTestCase {
             PostLinkResponse(serverId: "server-123", canonicalUrl: "https://example.com/canonical")
         )
 
-        let archive = MockArchiveManager()
-        let engine = SyncEngine(api: api, modelContainer: container, archiveManager: archive)
+        let engine = SyncEngine(api: api, modelContainer: container)
 
         await engine._testRunSyncNow(reason: "test")
 
@@ -102,7 +94,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(saved.status, "synced")
         XCTAssertEqual(saved.serverId, "server-123")
         XCTAssertEqual(saved.canonicalUrl.absoluteString, "https://example.com/canonical")
-        XCTAssertTrue(archive.prefetchCalled, "Archive prefetch should be triggered after sync")
+
         XCTAssertEqual(api.capturedPostPayloads.count, 1)
         let payload = try XCTUnwrap(api.capturedPostPayloads.first)
         XCTAssertEqual(payload.originalUrl, "https://example.com/path")
@@ -130,7 +122,7 @@ final class SyncEngineTests: XCTestCase {
         api.nextPostResult = .failure(TestError.network)
 
         let engine = SyncEngine(
-            api: api, modelContainer: container, archiveManager: MockArchiveManager())
+            api: api, modelContainer: container)
 
         await engine._testRunSyncNow(reason: "test")
 
@@ -168,7 +160,7 @@ final class SyncEngineTests: XCTestCase {
         api.nextDeltaResult = .success(DeltaResponse(links: [serverLink], nextCursor: "cursor-2"))
 
         let engine = SyncEngine(
-            api: api, modelContainer: container, archiveManager: MockArchiveManager())
+            api: api, modelContainer: container)
 
         await engine._testRunSyncNow(reason: "test")
 
@@ -233,7 +225,7 @@ final class SyncEngineTests: XCTestCase {
         api.nextDeltaResult = .success(DeltaResponse(links: [s], nextCursor: nil))
 
         let engine = SyncEngine(
-            api: api, modelContainer: container, archiveManager: MockArchiveManager())
+            api: api, modelContainer: container)
         await engine._testRunSyncNow(reason: "test")
 
         // Assert merged

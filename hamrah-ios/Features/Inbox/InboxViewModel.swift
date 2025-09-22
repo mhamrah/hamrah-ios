@@ -19,7 +19,7 @@ final class InboxViewModel: BaseViewModel {
     @Published var showFailedOnly: Bool = false
     @Published var selectedStatus: String?
     @Published var selectedTags: [String] = []
-    @Published var hasArchiveFilter: Bool?
+
     @Published var syncing: Bool = false
 
     // MARK: - Dependencies
@@ -33,13 +33,13 @@ final class InboxViewModel: BaseViewModel {
         let searchTerm = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let status = showFailedOnly ? "failed" : selectedStatus
 
-        if searchTerm.isEmpty && status == nil && selectedTags.isEmpty && hasArchiveFilter == nil {
+        if searchTerm.isEmpty && status == nil && selectedTags.isEmpty {
             return LinkQueryDescriptors.all(limit: 50, sort: selectedSort)
         } else {
             return LinkQueryDescriptors.filtered(
                 searchTerm: searchTerm.isEmpty ? nil : searchTerm,
                 status: status,
-                hasArchive: hasArchiveFilter,
+
                 tags: selectedTags,
                 sort: selectedSort,
                 limit: 50
@@ -49,7 +49,7 @@ final class InboxViewModel: BaseViewModel {
 
     var hasActiveFilters: Bool {
         !searchText.isEmpty || showFailedOnly || selectedStatus != nil || !selectedTags.isEmpty
-            || hasArchiveFilter != nil
+
     }
 
     // MARK: - Initialization
@@ -112,7 +112,7 @@ final class InboxViewModel: BaseViewModel {
         showFailedOnly = false
         selectedStatus = nil
         selectedTags.removeAll()
-        hasArchiveFilter = nil
+
         selectedSort = .recent
     }
 

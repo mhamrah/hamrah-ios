@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+
 #if os(macOS)
     import AppKit
 #endif
@@ -38,7 +39,6 @@ struct SettingsView: View {
         Form {
             serverSyncSection
             modelsSection
-            archiveCacheSection
             syncEngineSection
             advancedSection
         }
@@ -118,8 +118,8 @@ struct SettingsView: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(
-                                    preferredModels.contains(model) ?
-                                        Color.accentColor : Color.secondary.opacity(0.2)
+                                    preferredModels.contains(model)
+                                        ? Color.accentColor : Color.secondary.opacity(0.2)
                                 )
                                 .foregroundColor(
                                     preferredModels.contains(model) ? .white : .primary
@@ -150,16 +150,6 @@ struct SettingsView: View {
                     preferredModels = []
                     debounceAutosave()
                 }
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
-    @ViewBuilder
-    private var archiveCacheSection: some View {
-        Section("Archive Cache") {
-            Button("Enforce Cache Quota Now") {
-                ArchiveCacheManager.shared.enforceQuota(quotaMB: 512)
             }
             .buttonStyle(.bordered)
         }

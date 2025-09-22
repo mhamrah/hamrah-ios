@@ -114,44 +114,33 @@ class NativeAuthManager: NSObject, ObservableObject {
         let error: String?
 
         // Handle different possible field names for access token
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: DynamicCodingKeys.self)
-            success = try container.decode(
-                Bool.self, forKey: DynamicCodingKeys(stringValue: "success")!)
-            user = try container.decodeIfPresent(
-                HamrahUser.self, forKey: DynamicCodingKeys(stringValue: "user")!)
-            error = try container.decodeIfPresent(
-                String.self, forKey: DynamicCodingKeys(stringValue: "error")!)
-            refreshToken = try container.decodeIfPresent(
-                String.self, forKey: DynamicCodingKeys(stringValue: "refreshToken")!)
-            expiresIn = try container.decodeIfPresent(
-                Int.self, forKey: DynamicCodingKeys(stringValue: "expiresIn")!)
+        enum CodingKeys: String, CodingKey {
+            case success
+            case user
+            case accessToken = "access_token"
+            case refreshToken = "refresh_token"
+            case expiresIn = "expires_in"
+            case error
+        }
 
-            // Try different possible field names for access token
-            var tempAccessToken = try container.decodeIfPresent(
-                String.self, forKey: DynamicCodingKeys(stringValue: "accessToken")!)
-            if tempAccessToken == nil {
-                tempAccessToken = try container.decodeIfPresent(
-                    String.self, forKey: DynamicCodingKeys(stringValue: "access_token")!)
-            }
-            if tempAccessToken == nil {
-                tempAccessToken = try container.decodeIfPresent(
-                    String.self, forKey: DynamicCodingKeys(stringValue: "token")!)
-            }
-            accessToken = tempAccessToken
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            success = try container.decode(Bool.self, forKey: .success)
+            user = try container.decodeIfPresent(HamrahUser.self, forKey: .user)
+            accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken)
+            refreshToken = try container.decodeIfPresent(String.self, forKey: .refreshToken)
+            expiresIn = try container.decodeIfPresent(Int.self, forKey: .expiresIn)
+            error = try container.decodeIfPresent(String.self, forKey: .error)
         }
 
         func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: DynamicCodingKeys.self)
-            try container.encode(success, forKey: DynamicCodingKeys(stringValue: "success")!)
-            try container.encodeIfPresent(user, forKey: DynamicCodingKeys(stringValue: "user")!)
-            try container.encodeIfPresent(
-                accessToken, forKey: DynamicCodingKeys(stringValue: "accessToken")!)
-            try container.encodeIfPresent(
-                refreshToken, forKey: DynamicCodingKeys(stringValue: "refreshToken")!)
-            try container.encodeIfPresent(
-                expiresIn, forKey: DynamicCodingKeys(stringValue: "expiresIn")!)
-            try container.encodeIfPresent(error, forKey: DynamicCodingKeys(stringValue: "error")!)
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(success, forKey: .success)
+            try container.encodeIfPresent(user, forKey: .user)
+            try container.encodeIfPresent(accessToken, forKey: .accessToken)
+            try container.encodeIfPresent(refreshToken, forKey: .refreshToken)
+            try container.encodeIfPresent(expiresIn, forKey: .expiresIn)
+            try container.encodeIfPresent(error, forKey: .error)
         }
     }
 
@@ -159,6 +148,12 @@ class NativeAuthManager: NSObject, ObservableObject {
         let success: Bool
         let options: PublicKeyCredentialRequestOptions?
         let error: String?
+
+        enum CodingKeys: String, CodingKey {
+            case success
+            case options
+            case error
+        }
     }
 
     struct PublicKeyCredentialRequestOptions: Codable {
@@ -168,12 +163,27 @@ class NativeAuthManager: NSObject, ObservableObject {
         let allowCredentials: [PublicKeyCredentialDescriptor]?
         let userVerification: String?
         let challengeId: String
+
+        enum CodingKeys: String, CodingKey {
+            case challenge
+            case timeout
+            case rpId = "rp_id"
+            case allowCredentials = "allow_credentials"
+            case userVerification = "user_verification"
+            case challengeId = "challenge_id"
+        }
     }
 
     struct PublicKeyCredentialDescriptor: Codable {
         let type: String
         let id: String
         let transports: [String]?
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case id
+            case transports
+        }
     }
 
     override init() {
@@ -323,13 +333,18 @@ class NativeAuthManager: NSObject, ObservableObject {
             struct PasskeyCredentialInfo: Codable {
                 let id: String
                 let name: String?
+
+                enum CodingKeys: String, CodingKey {
+                    case id
+                    case name
+                }
             }
 
             let response = try await secureAPI.get(
                 endpoint: "/api/webauthn/users/\(userId)/credentials",
                 accessToken: token,
                 responseType: PasskeyCredentialsResponse.self,
-                customBaseURL: webAppBaseURL
+                customBaseURL: nil
             )
 
             let hasPasskeys = response.success && !response.credentials.isEmpty
@@ -442,6 +457,13 @@ class NativeAuthManager: NSObject, ObservableObject {
             let user: HamrahUser?
             let session_token: String?
             let error: String?
+
+            enum CodingKeys: String, CodingKey {
+                case success
+                case user
+                case session_token
+                case error
+            }
         }
 
         // Directly call the new verify endpoint (no cookie extraction required; session token returned in body)
@@ -549,13 +571,13 @@ class NativeAuthManager: NSObject, ObservableObject {
 
             // Store refresh token if provided
             if let refreshToken = authResponse.refreshToken {
-                UserDefaults.standard.set(refreshToken, forKey: "hamrah_refresh_token")
+                _ = KeychainManager.shared.store(refreshToken, for: "hamrah_refresh_token")
             }
 
             // Store token expiration if provided
             if let expiresIn = authResponse.expiresIn {
                 let expiresAt = Date().timeIntervalSince1970 + TimeInterval(expiresIn)
-                UserDefaults.standard.set(expiresAt, forKey: "hamrah_token_expires_at")
+                _ = KeychainManager.shared.store(expiresAt, for: "hamrah_token_expires_at")
             }
 
             // Store the user's email for future automatic login
@@ -598,7 +620,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         }
 
         // Try to validate with a backend endpoint that we know exists
-        let url = URL(string: "\(webAppBaseURL)/api/webauthn/users/\(userId)/credentials")!
+        let url = URL(string: "\(baseURL)/api/auth/tokens/validate")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -637,12 +659,13 @@ class NativeAuthManager: NSObject, ObservableObject {
     // MARK: - Token Refresh
 
     func refreshToken() async -> Bool {
-        guard let refreshToken = UserDefaults.standard.string(forKey: "hamrah_refresh_token") else {
+        guard let refreshToken = KeychainManager.shared.retrieveString(for: "hamrah_refresh_token")
+        else {
             print("🔄 No refresh token available")
             return false
         }
 
-        let url = URL(string: "\(baseURL)/api/auth/token/refresh")!
+        let url = URL(string: "\(baseURL)/api/auth/tokens/refresh")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -667,6 +690,12 @@ class NativeAuthManager: NSObject, ObservableObject {
                 let access_token: String
                 let refresh_token: String
                 let expires_in: Int
+
+                enum CodingKeys: String, CodingKey {
+                    case access_token
+                    case refresh_token
+                    case expires_in
+                }
             }
 
             let tokenResponse = try JSONDecoder().decode(TokenRefreshResponse.self, from: data)
@@ -674,14 +703,15 @@ class NativeAuthManager: NSObject, ObservableObject {
             // Update stored tokens
             await MainActor.run {
                 self.accessToken = tokenResponse.access_token
-                UserDefaults.standard.set(tokenResponse.access_token, forKey: "hamrah_access_token")
-                UserDefaults.standard.set(
-                    tokenResponse.refresh_token, forKey: "hamrah_refresh_token")
-                UserDefaults.standard.set(
-                    Date().timeIntervalSince1970, forKey: "hamrah_auth_timestamp")
-                UserDefaults.standard.set(
+                _ = KeychainManager.shared.store(
+                    tokenResponse.access_token, for: "hamrah_access_token")
+                _ = KeychainManager.shared.store(
+                    tokenResponse.refresh_token, for: "hamrah_refresh_token")
+                _ = KeychainManager.shared.store(
+                    Date().timeIntervalSince1970, for: "hamrah_auth_timestamp")
+                _ = KeychainManager.shared.store(
                     Date().timeIntervalSince1970 + TimeInterval(tokenResponse.expires_in),
-                    forKey: "hamrah_token_expires_at")
+                    for: "hamrah_token_expires_at")
             }
 
             print("✅ Token refreshed successfully")
@@ -694,7 +724,7 @@ class NativeAuthManager: NSObject, ObservableObject {
     }
 
     func isTokenExpiringSoon() -> Bool {
-        let expiresAt = UserDefaults.standard.double(forKey: "hamrah_token_expires_at")
+        let expiresAt = KeychainManager.shared.retrieveDouble(for: "hamrah_token_expires_at") ?? 0
         guard expiresAt > 0 else { return true }
 
         let fiveMinutesFromNow = Date().timeIntervalSince1970 + (5 * 60)  // 5 minutes
@@ -726,8 +756,7 @@ class NativeAuthManager: NSObject, ObservableObject {
     private func loadStoredAuth() {
         let keychain = KeychainManager.shared
 
-        // First try to migrate from UserDefaults if data exists there
-        migrateFromUserDefaults()
+        // Migration removed: tokens are stored in Keychain only
 
         // Load from secure Keychain
         isAuthenticated = keychain.retrieveBool(for: "hamrah_is_authenticated") ?? false
@@ -757,72 +786,11 @@ class NativeAuthManager: NSObject, ObservableObject {
         // Clear from Keychain
         _ = keychain.clearAllHamrahData()
 
-        // Also clear from UserDefaults in case of migration
-        UserDefaults.standard.removeObject(forKey: "hamrah_user")
-        UserDefaults.standard.removeObject(forKey: "hamrah_access_token")
-        UserDefaults.standard.removeObject(forKey: "hamrah_refresh_token")
-        UserDefaults.standard.removeObject(forKey: "hamrah_is_authenticated")
-        UserDefaults.standard.removeObject(forKey: "hamrah_auth_timestamp")
-        UserDefaults.standard.removeObject(forKey: "hamrah_token_expires_at")
+        // No legacy UserDefaults values to clear (tokens are stored in Keychain)
         // Don't clear last used email for passkey auto-login
     }
 
-    // MARK: - Migration from UserDefaults to Keychain
-
-    private func migrateFromUserDefaults() {
-        let keychain = KeychainManager.shared
-
-        // Check if we've already migrated
-        if keychain.retrieveBool(for: "hamrah_migration_completed") == true {
-            return
-        }
-
-        print("🔄 Migrating auth data from UserDefaults to Keychain...")
-
-        // Migrate user data
-        if let userData = UserDefaults.standard.data(forKey: "hamrah_user") {
-            _ = keychain.store(userData, for: "hamrah_user")
-            UserDefaults.standard.removeObject(forKey: "hamrah_user")
-        }
-
-        // Migrate access token
-        if let accessToken = UserDefaults.standard.string(forKey: "hamrah_access_token") {
-            _ = keychain.store(accessToken, for: "hamrah_access_token")
-            UserDefaults.standard.removeObject(forKey: "hamrah_access_token")
-        }
-
-        // Migrate refresh token
-        if let refreshToken = UserDefaults.standard.string(forKey: "hamrah_refresh_token") {
-            _ = keychain.store(refreshToken, for: "hamrah_refresh_token")
-            UserDefaults.standard.removeObject(forKey: "hamrah_refresh_token")
-        }
-
-        // Migrate authentication state
-        let wasAuthenticated = UserDefaults.standard.bool(forKey: "hamrah_is_authenticated")
-        if UserDefaults.standard.object(forKey: "hamrah_is_authenticated") != nil {
-            _ = keychain.store(wasAuthenticated, for: "hamrah_is_authenticated")
-            UserDefaults.standard.removeObject(forKey: "hamrah_is_authenticated")
-        }
-
-        // Migrate timestamp
-        let timestamp = UserDefaults.standard.double(forKey: "hamrah_auth_timestamp")
-        if timestamp > 0 {
-            _ = keychain.store(timestamp, for: "hamrah_auth_timestamp")
-            UserDefaults.standard.removeObject(forKey: "hamrah_auth_timestamp")
-        }
-
-        // Migrate token expiry
-        let expiresAt = UserDefaults.standard.double(forKey: "hamrah_token_expires_at")
-        if expiresAt > 0 {
-            _ = keychain.store(expiresAt, for: "hamrah_token_expires_at")
-            UserDefaults.standard.removeObject(forKey: "hamrah_token_expires_at")
-        }
-
-        // Mark migration as completed
-        _ = keychain.store(true, for: "hamrah_migration_completed")
-
-        print("✅ Migration to Keychain completed successfully")
-    }
+    // Migration from UserDefaults removed; tokens are stored in Keychain only
 
     // MARK: - Last Used Email for Passkey Auto-Login
 

@@ -16,29 +16,29 @@ struct Theme {
         static let primary = Color.accentColor
         static let secondary = Color.secondary
         #if os(iOS)
-        static let tertiary = Color(.tertiaryLabel)
+            static let tertiary = Color(.tertiaryLabel)
         #elseif os(macOS)
-        static let tertiary = Color(NSColor.tertiaryLabelColor)
+            static let tertiary = Color(NSColor.tertiaryLabelColor)
         #endif
 
         // Background colors
         #if os(iOS)
-        static let background = Color(.systemBackground)
-        static let secondaryBackground = Color(.secondarySystemBackground)
-        static let tertiaryBackground = Color(.tertiarySystemBackground)
+            static let background = Color(.systemBackground)
+            static let secondaryBackground = Color(.secondarySystemBackground)
+            static let tertiaryBackground = Color(.tertiarySystemBackground)
         #elseif os(macOS)
-        static let background = Color(NSColor.windowBackgroundColor)
-        static let secondaryBackground = Color(NSColor.controlBackgroundColor)
-        static let tertiaryBackground = Color(NSColor.underPageBackgroundColor)
+            static let background = Color(NSColor.windowBackgroundColor)
+            static let secondaryBackground = Color(NSColor.controlBackgroundColor)
+            static let tertiaryBackground = Color(NSColor.underPageBackgroundColor)
         #endif
 
         // Card and surface colors
         #if os(iOS)
-        static let cardBackground = Color(.systemBackground)
-        static let surfaceBackground = Color(.systemGroupedBackground)
+            static let cardBackground = Color(.systemBackground)
+            static let surfaceBackground = Color(.systemGroupedBackground)
         #elseif os(macOS)
-        static let cardBackground = Color(NSColor.windowBackgroundColor)
-        static let surfaceBackground = Color(NSColor.controlBackgroundColor)
+            static let cardBackground = Color(NSColor.windowBackgroundColor)
+            static let surfaceBackground = Color(NSColor.controlBackgroundColor)
         #endif
 
         // Status colors
@@ -57,18 +57,18 @@ struct Theme {
         static let primaryText = Color.primary
         static let secondaryText = Color.secondary
         #if os(iOS)
-        static let tertiaryText = Color(.tertiaryLabel)
+            static let tertiaryText = Color(.tertiaryLabel)
         #elseif os(macOS)
-        static let tertiaryText = Color(NSColor.tertiaryLabelColor)
+            static let tertiaryText = Color(NSColor.tertiaryLabelColor)
         #endif
 
         // Border colors
         #if os(iOS)
-        static let border = Color(.separator)
-        static let secondaryBorder = Color(.opaqueSeparator)
+            static let border = Color(.separator)
+            static let secondaryBorder = Color(.opaqueSeparator)
         #elseif os(macOS)
-        static let border = Color(NSColor.separatorColor)
-        static let secondaryBorder = Color(NSColor.gridColor)
+            static let border = Color(NSColor.separatorColor)
+            static let secondaryBorder = Color(NSColor.gridColor)
         #endif
 
         static func linkStatusColor(_ status: String) -> Color {
@@ -199,7 +199,7 @@ struct Theme {
         // Content
         static let link = "link"
         static let web = "globe"
-        static let archive = "doc.zipper"
+
         static let tag = "tag"
         static let search = "magnifyingglass"
         static let filter = "line.3.horizontal.decrease.circle"

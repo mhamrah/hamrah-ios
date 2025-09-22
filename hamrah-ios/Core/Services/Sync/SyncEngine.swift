@@ -13,7 +13,7 @@ final class SyncEngine: ObservableObject {
 
     private let api: LinkAPI
     private let modelContainer: ModelContainer
-    private let archiveManager: ArchiveCacheManaging
+
     private let logger = Logger(subsystem: "app.hamrah.ios", category: "SyncEngine")
 
     // MARK: - Concurrency
@@ -31,7 +31,7 @@ final class SyncEngine: ObservableObject {
             let container = try ModelContainer(
                 for:
                     LinkEntity.self,
-                ArchiveAsset.self,
+
                 TagEntity.self,
                 SyncCursor.self,
                 UserPrefs.self,
@@ -39,8 +39,7 @@ final class SyncEngine: ObservableObject {
             )
             self.init(
                 api: SecureAPILinkClient(),
-                modelContainer: container,
-                archiveManager: ArchiveCacheManager.shared
+                modelContainer: container
             )
         } catch {
             fatalError("Failed to initialize SyncEngine ModelContainer: \(error)")
@@ -48,10 +47,10 @@ final class SyncEngine: ObservableObject {
     }
 
     /// Designated initializer supporting dependency injection for testing.
-    init(api: LinkAPI, modelContainer: ModelContainer, archiveManager: ArchiveCacheManaging) {
+    init(api: LinkAPI, modelContainer: ModelContainer) {
         self.api = api
         self.modelContainer = modelContainer
-        self.archiveManager = archiveManager
+
         setupPathMonitor()
     }
 
@@ -107,13 +106,6 @@ final class SyncEngine: ObservableObject {
 
         await syncOutboundLinks(context: context)
         await syncInboundLinks(context: context)
-
-        // Archive prefetch + quota enforcement
-        await archiveManager.prefetchAndEvictArchives(
-            context: context,
-            token: accessToken(),
-            baseURL: APIConfiguration.shared.baseURL
-        )
 
         logger.info("Finished sync; reason=\(reason, privacy: .public)")
     }
@@ -317,19 +309,6 @@ protocol LinkAPI {
     func getLinks(since: String, limit: Int, token: String?) async throws -> DeltaResponse
 }
 
-/// Abstracts archive prefetch/eviction to allow swapping implementations in tests.
-protocol ArchiveCacheManaging {
-    /// Prefetches or updates archives for synced links and enforces cache quota.
-    /// - Parameters:
-    ///   - context: SwiftData context
-    ///   - token: Optional bearer token for authorized requests
-    ///   - baseURL: API base URL (e.g., https://api.hamrah.app)
-    func prefetchAndEvictArchives(context: ModelContext, token: String?, baseURL: String) async
-
-    /// Returns the local file URL to the archived ZIP for a link, if present.
-    func localArchiveZipURL(for link: LinkEntity) -> URL?
-}
-
 // MARK: - LinkAPI DTOs
 
 struct OutboundLinkPayload: Encodable {
@@ -462,119 +441,5 @@ extension JSONEncoder {
         let enc = JSONEncoder()
         enc.dateEncodingStrategy = .iso8601
         return enc
-    }
-}
-
-extension ArchiveCacheManager: ArchiveCacheManaging {
-    func prefetchAndEvictArchives(context: ModelContext, token: String?, baseURL: String) async {
-        let logger = Logger(subsystem: "app.hamrah.ios", category: "ArchivePrefetch")
-        let now = Date()
-
-        // Fetch all links that have a serverId (synced on server)
-        let links =
-            (try? context.fetch(
-                FetchDescriptor<LinkEntity>(predicate: #Predicate { $0.serverId != nil })
-            )) ?? []
-
-        for link in links {
-            guard let sid = link.serverId else { continue }
-            let endpoint = "/v1/links/\(sid)/archive"
-
-            // Ensure ArchiveAsset exists
-            if link.archive == nil {
-                let arch = ArchiveAsset(link: link, state: "none")
-                context.insert(arch)
-                link.archive = arch
-            }
-
-            let currentETag = link.archive?.etag
-
-            do {
-                // HEAD request to compare ETag
-                let head = try await SecureAPIService.shared.headRaw(
-                    endpoint: endpoint,
-                    ifNoneMatchETag: currentETag,
-                    accessToken: token
-                )
-
-                if head.statusCode == 304 {
-                    // Up-to-date; mark ready if file exists
-                    if let url = archiveZipURL(for: sid),
-                        FileManager.default.fileExists(atPath: url.path)
-                    {
-                        link.archive?.state = "ready"
-                        link.archive?.path = "\(Self.archivesSubdir)/\(sid).zip"
-                    }
-                    link.archive?.lastCheckedAt = now
-                    continue
-                }
-
-                // New content available → download
-                let (tempURL, response) = try await SecureAPIService.shared.downloadRaw(
-                    endpoint: endpoint,
-                    accessToken: token
-                )
-
-                let eTag =
-                    (response.allHeaderFields["ETag"] as? String)
-                    ?? (response.allHeaderFields["Etag"] as? String)
-
-                let (size, _) = try storeDownloadedArchive(
-                    serverId: sid,
-                    tempURL: tempURL,
-                    etag: eTag
-                )
-
-                if let arch = link.archive {
-                    arch.state = "ready"
-                    arch.etag = eTag
-                    arch.path = "\(Self.archivesSubdir)/\(sid).zip"
-                    arch.sizeBytes = size
-                    arch.lastCheckedAt = now
-                }
-            } catch {
-                logger.warning(
-                    "Archive prefetch failed for \(sid, privacy: .public): \(error.localizedDescription, privacy: .public)"
-                )
-                if let arch = link.archive {
-                    arch.state = "failed"
-                    arch.lastCheckedAt = now
-                }
-            }
-        }
-
-        // Enforce quota using default value (device preferences removed)
-        enforceQuota(quotaMB: ArchiveCacheManager.defaultQuotaMB)
-
-        do { try context.save() } catch {
-            logger.error(
-                "Failed saving archive updates: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    func localArchiveZipURL(for link: LinkEntity) -> URL? {
-        if let sid = link.serverId {
-            return archiveZipURL(for: sid)
-        }
-        return nil
-    }
-
-    // Moves temp download to cache location and records metadata.
-    private func storeDownloadedArchive(serverId: String, tempURL: URL, etag: String?) throws -> (
-        Int64, URL
-    ) {
-        guard let zipURL = archiveZipURL(for: serverId) else {
-            throw NSError(
-                domain: "ArchiveCacheManager", code: 3,
-                userInfo: [NSLocalizedDescriptionKey: "No archive directory"])
-        }
-        if FileManager.default.fileExists(atPath: zipURL.path) {
-            try FileManager.default.removeItem(at: zipURL)
-        }
-        try FileManager.default.moveItem(at: tempURL, to: zipURL)
-        let attrs = try FileManager.default.attributesOfItem(atPath: zipURL.path)
-        let size = attrs[.size] as? Int64 ?? 0
-        writeArchiveMeta(for: serverId, etag: etag, sizeBytes: size)
-        return (size, zipURL)
     }
 }
