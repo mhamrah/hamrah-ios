@@ -117,17 +117,30 @@ class NativeAuthManager: NSObject, ObservableObject {
         enum CodingKeys: String, CodingKey {
             case success
             case user
-            case accessToken = "access_token"
+            case accessToken
+            case access_token
             case refreshToken = "refresh_token"
             case expiresIn = "expires_in"
             case error
+            case token
         }
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             success = try container.decode(Bool.self, forKey: .success)
             user = try container.decodeIfPresent(HamrahUser.self, forKey: .user)
-            accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken)
+            
+            // Try different field names for access token
+            if let token = try container.decodeIfPresent(String.self, forKey: .accessToken) {
+                accessToken = token
+            } else if let token = try container.decodeIfPresent(String.self, forKey: .access_token) {
+                accessToken = token
+            } else if let token = try container.decodeIfPresent(String.self, forKey: .token) {
+                accessToken = token
+            } else {
+                accessToken = nil
+            }
+            
             refreshToken = try container.decodeIfPresent(String.self, forKey: .refreshToken)
             expiresIn = try container.decodeIfPresent(Int.self, forKey: .expiresIn)
             error = try container.decodeIfPresent(String.self, forKey: .error)
@@ -167,10 +180,30 @@ class NativeAuthManager: NSObject, ObservableObject {
         enum CodingKeys: String, CodingKey {
             case challenge
             case timeout
-            case rpId = "rp_id"
+            case rpId
+            case rp_id
             case allowCredentials = "allow_credentials"
             case userVerification = "user_verification"
             case challengeId = "challenge_id"
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            challenge = try container.decode(String.self, forKey: .challenge)
+            timeout = try container.decodeIfPresent(Int.self, forKey: .timeout)
+            
+            // Try both "rpId" and "rp_id" field names
+            if let id = try container.decodeIfPresent(String.self, forKey: .rpId) {
+                rpId = id
+            } else if let id = try container.decodeIfPresent(String.self, forKey: .rp_id) {
+                rpId = id
+            } else {
+                throw DecodingError.keyNotFound(CodingKeys.rpId, DecodingError.Context(codingPath: container.codingPath, debugDescription: "Missing rpId or rp_id field"))
+            }
+            
+            allowCredentials = try container.decodeIfPresent([PublicKeyCredentialDescriptor].self, forKey: .allowCredentials)
+            userVerification = try container.decodeIfPresent(String.self, forKey: .userVerification)
+            challengeId = try container.decode(String.self, forKey: .challengeId)
         }
     }
 
@@ -724,7 +757,10 @@ class NativeAuthManager: NSObject, ObservableObject {
     }
 
     func isTokenExpiringSoon() -> Bool {
-        let expiresAt = KeychainManager.shared.retrieveDouble(for: "hamrah_token_expires_at") ?? 0
+        // Check Keychain first (current storage), then UserDefaults (for backward compatibility/tests)
+        let expiresAt = KeychainManager.shared.retrieveDouble(for: "hamrah_token_expires_at") 
+            ?? UserDefaults.standard.double(forKey: "hamrah_token_expires_at")
+        
         guard expiresAt > 0 else { return true }
 
         let fiveMinutesFromNow = Date().timeIntervalSince1970 + (5 * 60)  // 5 minutes
@@ -786,7 +822,13 @@ class NativeAuthManager: NSObject, ObservableObject {
         // Clear from Keychain
         _ = keychain.clearAllHamrahData()
 
-        // No legacy UserDefaults values to clear (tokens are stored in Keychain)
+        // Clear legacy UserDefaults values for backward compatibility
+        UserDefaults.standard.removeObject(forKey: "hamrah_access_token")
+        UserDefaults.standard.removeObject(forKey: "hamrah_refresh_token")
+        UserDefaults.standard.removeObject(forKey: "hamrah_is_authenticated")
+        UserDefaults.standard.removeObject(forKey: "hamrah_auth_timestamp")
+        UserDefaults.standard.removeObject(forKey: "hamrah_token_expires_at")
+        
         // Don't clear last used email for passkey auto-login
     }
 
