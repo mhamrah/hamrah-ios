@@ -105,6 +105,16 @@ class NativeAuthManager: NSObject, ObservableObject {
             case created_at
         }
         
+        // Explicit memberwise initializer (required when custom init(from:) is added)
+        init(id: String, email: String, name: String?, picture: String?, authMethod: String, createdAt: String?) {
+            self.id = id
+            self.email = email
+            self.name = name
+            self.picture = picture
+            self.authMethod = authMethod
+            self.createdAt = createdAt
+        }
+        
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             id = try container.decode(String.self, forKey: .id)
