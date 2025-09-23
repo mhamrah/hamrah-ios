@@ -211,7 +211,7 @@ jobs:
           xcodebuild \
             -project "${XCODE_PROJECT}" \
             -scheme "${MACOS_SCHEME}" \
-            -destination 'platform=macOS' \
+            -destination 'platform=macOS,arch=arm64' \
             -configuration Debug \
             -derivedDataPath "${DERIVED_DATA_PATH}" \
             -allowProvisioningUpdates \
@@ -226,7 +226,7 @@ jobs:
             -project "${XCODE_PROJECT}" \
             -scheme "${MACOS_SCHEME}" \
             -configuration Release \
-            -destination 'generic/platform=macOS' \
+            -destination 'generic/platform=macOS,arch=arm64' \
             -derivedDataPath "${DERIVED_DATA_PATH}" \
             -allowProvisioningUpdates \
             -skipPackagePluginValidation \
