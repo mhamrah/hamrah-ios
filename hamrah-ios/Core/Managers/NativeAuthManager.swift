@@ -103,6 +103,16 @@ class NativeAuthManager: NSObject, ObservableObject {
             case authMethod = "auth_method"
             case createdAt = "created_at"
         }
+        
+        // Explicit memberwise initializer
+        init(id: String, email: String, name: String?, picture: String?, authMethod: String, createdAt: String?) {
+            self.id = id
+            self.email = email
+            self.name = name
+            self.picture = picture
+            self.authMethod = authMethod
+            self.createdAt = createdAt
+        }
     }
 
     struct AuthResponse: Codable {
@@ -724,7 +734,10 @@ class NativeAuthManager: NSObject, ObservableObject {
     }
 
     func isTokenExpiringSoon() -> Bool {
-        let expiresAt = KeychainManager.shared.retrieveDouble(for: "hamrah_token_expires_at") ?? 0
+        // Check Keychain first (current storage), then UserDefaults (for backward compatibility/tests)
+        let expiresAt = KeychainManager.shared.retrieveDouble(for: "hamrah_token_expires_at") 
+            ?? UserDefaults.standard.double(forKey: "hamrah_token_expires_at")
+        
         guard expiresAt > 0 else { return true }
 
         let fiveMinutesFromNow = Date().timeIntervalSince1970 + (5 * 60)  // 5 minutes
@@ -786,7 +799,13 @@ class NativeAuthManager: NSObject, ObservableObject {
         // Clear from Keychain
         _ = keychain.clearAllHamrahData()
 
-        // No legacy UserDefaults values to clear (tokens are stored in Keychain)
+        // Clear legacy UserDefaults values for backward compatibility
+        UserDefaults.standard.removeObject(forKey: "hamrah_access_token")
+        UserDefaults.standard.removeObject(forKey: "hamrah_refresh_token")
+        UserDefaults.standard.removeObject(forKey: "hamrah_is_authenticated")
+        UserDefaults.standard.removeObject(forKey: "hamrah_auth_timestamp")
+        UserDefaults.standard.removeObject(forKey: "hamrah_token_expires_at")
+        
         // Don't clear last used email for passkey auto-login
     }
 

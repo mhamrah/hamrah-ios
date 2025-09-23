@@ -12,7 +12,7 @@ class APIConfiguration {
             case .production:
                 return "https://api.hamrah.app"
             case .development:
-                return "http://127.0.0.1:8787"
+                return "https://localhost:5173"
             case .custom:
                 return ""  // Will be set by user
             }
@@ -100,12 +100,13 @@ class APIConfiguration {
             if url.isEmpty {
                 return Environment.production.baseURL  // Fallback to production
             }
-            // Allow http/https; if no scheme, default to https
-            if url.hasPrefix("http://") || url.hasPrefix("https://") {
-                return url
-            } else {
+            // Enforce HTTPS for custom URLs
+            if url.hasPrefix("http://") {
+                return url.replacingOccurrences(of: "http://", with: "https://")
+            } else if !url.hasPrefix("https://") {
                 return "https://\(url)"
             }
+            return url
         }
     }
 
