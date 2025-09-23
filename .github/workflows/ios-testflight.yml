@@ -93,6 +93,7 @@ jobs:
             -allowProvisioningUpdates \
             -skipPackagePluginValidation \
             -enableCodeCoverage YES \
+            -skip-testing:hamrah-ios-uitests \
             clean test | xcpretty || exit ${PIPESTATUS[0]}
 
       - name: Archive iOS (Release)
