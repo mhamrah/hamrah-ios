@@ -99,6 +99,7 @@ jobs:
             -archivePath "${BUILD_DIR}/App-iOS.xcarchive" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="" \
+            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
             clean archive || { echo "iOS archive failed"; exit 1; }
 
       - name: Create iOS export options
