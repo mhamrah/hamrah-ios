@@ -25,6 +25,8 @@ env:
   XCODE_PROJECT: ${{ vars.XCODE_PROJECT || 'hamrah-ios.xcodeproj' }}
   IOS_SCHEME: ${{ vars.IOS_SCHEME || 'hamrah-ios' }}
   IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'app.hamrah.ios' }}
+  MACOS_SCHEME: ${{ vars.MACOS_SCHEME || '' }}
+  MACOS_BUNDLE_ID: ${{ vars.MACOS_BUNDLE_ID || '' }}
   APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID || 'UR6RM9YCF7' }}
 
   # Xcode 16 is required for iOS 18.x SDKs used by this project.
@@ -34,6 +36,7 @@ env:
   DERIVED_DATA_PATH: ${{ runner.temp }}/DerivedData
   BUILD_DIR: ${{ runner.temp }}/build
   EXPORT_DIR_IOS: ${{ runner.temp }}/export-ios
+  EXPORT_DIR_MACOS: ${{ runner.temp }}/export-macos
 
 jobs:
   ios-build-test-upload:
@@ -76,9 +79,19 @@ jobs:
           api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
 
+      - name: Download macOS App Store provisioning profile
+        if: ${{ env.MACOS_BUNDLE_ID != '' }}
+        uses: apple-actions/download-provisioning-profiles@v4
+        with:
+          bundle-id: ${{ env.MACOS_BUNDLE_ID }}
+          profile-type: MAC_APP_STORE
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
       - name: Prepare build directories
         run: |
-          mkdir -p "${DERIVED_DATA_PATH}" "${BUILD_DIR}" "${EXPORT_DIR_IOS}"
+          mkdir -p "${DERIVED_DATA_PATH}" "${BUILD_DIR}" "${EXPORT_DIR_IOS}" "${EXPORT_DIR_MACOS}"
 
       - name: Run iOS unit tests (Simulator)
         env:
@@ -89,6 +102,22 @@ jobs:
             -project "${XCODE_PROJECT}" \
             -scheme "${IOS_SCHEME}" \
             -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -configuration Debug \
+            -derivedDataPath "${DERIVED_DATA_PATH}" \
+            -skipPackagePluginValidation \
+            -enableCodeCoverage YES \
+            clean test | xcpretty || exit ${PIPESTATUS[0]}
+
+      - name: Run macOS unit tests
+        if: ${{ env.MACOS_SCHEME != '' }}
+        env:
+          NSUnbufferedIO: "YES"
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "${XCODE_PROJECT}" \
+            -scheme "${MACOS_SCHEME}" \
+            -destination 'platform=macOS' \
             -configuration Debug \
             -derivedDataPath "${DERIVED_DATA_PATH}" \
             -skipPackagePluginValidation \
@@ -149,6 +178,62 @@ jobs:
           fi
           echo "path=${IPA_PATH}" >> "${GITHUB_OUTPUT}"
 
+      - name: Archive macOS (Release)
+        if: ${{ env.MACOS_SCHEME != '' }}
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "${XCODE_PROJECT}" \
+            -scheme "${MACOS_SCHEME}" \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "${DERIVED_DATA_PATH}" \
+            -allowProvisioningUpdates \
+            -skipPackagePluginValidation \
+            -archivePath "${BUILD_DIR}/App-macOS.xcarchive" \
+            clean archive | xcpretty || exit ${PIPESTATUS[0]}
+
+      - name: Create macOS export options
+        if: ${{ env.MACOS_SCHEME != '' }}
+        run: |
+          cat > "${RUNNER_TEMP}/export-options-macos.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key><true/>
+            <key>signingStyle</key><string>automatic</string>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Export macOS App Store package (.pkg)
+        if: ${{ env.MACOS_SCHEME != '' }}
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "${BUILD_DIR}/App-macOS.xcarchive" \
+            -exportPath "${EXPORT_DIR_MACOS}" \
+            -exportOptionsPlist "${RUNNER_TEMP}/export-options-macos.plist" \
+            -allowProvisioningUpdates | xcpretty || exit ${PIPESTATUS[0]}
+          echo "macOS export content:"
+          ls -la "${EXPORT_DIR_MACOS}"
+
+      - name: Find macOS .pkg path
+        if: ${{ env.MACOS_SCHEME != '' }}
+        id: find_macos_pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          PKG_PATH="$(find "${EXPORT_DIR_MACOS}" -maxdepth 2 -type f -name '*.pkg' | head -n1 || true)"
+          if [[ -z "${PKG_PATH}" ]]; then
+            echo "Failed to locate .pkg in ${EXPORT_DIR_MACOS}" >&2
+            exit 1
+          fi
+          echo "path=${PKG_PATH}" >> "${GITHUB_OUTPUT}"
+
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -159,6 +244,17 @@ jobs:
             ${{ env.EXPORT_DIR_IOS }}
           retention-days: 7
 
+      - name: Upload macOS artifacts
+        if: ${{ env.MACOS_SCHEME != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            ${{ steps.find_macos_pkg.outputs.path }}
+            ${{ env.BUILD_DIR }}/App-macOS.xcarchive
+            ${{ env.EXPORT_DIR_MACOS }}
+          retention-days: 7
+
       - name: Upload iOS to TestFlight
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload_to_testflight == true || startsWith(github.ref, 'refs/tags/') }}
         uses: apple-actions/upload-testflight-build@v3
@@ -167,15 +263,25 @@ jobs:
           issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+      - name: Upload macOS to TestFlight
+        if: ${{ env.MACOS_SCHEME != '' && (github.event_name == 'workflow_dispatch' && inputs.upload_to_testflight == true || startsWith(github.ref, 'refs/tags/')) }}
+        uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path: ${{ steps.find_macos_pkg.outputs.path }}
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
 # Configuration notes:
 # - Required repository Variables:
 #     APPSTORE_ISSUER_ID, APPSTORE_API_KEY_ID
 #   Optional (override detected values):
-#     XCODE_PROJECT, IOS_SCHEME, IOS_BUNDLE_ID, APPLE_TEAM_ID, XCODE_VERSION
+#     XCODE_PROJECT, IOS_SCHEME, IOS_BUNDLE_ID, MACOS_SCHEME, MACOS_BUNDLE_ID, APPLE_TEAM_ID, XCODE_VERSION
 #
 # - Required repository Secrets:
 #     APPSTORE_API_PRIVATE_KEY          (contents of AuthKey_<KEY_ID>.p8)
 #     APPSTORE_CERTIFICATES_FILE_BASE64 (base64 of your .p12 containing Apple Distribution cert + key)
 #     APPSTORE_CERTIFICATES_PASSWORD    (password used when exporting the .p12)
 #
-# - This repo does not currently contain a macOS app target, so macOS packaging/upload is omitted.
+# - Set MACOS_SCHEME and MACOS_BUNDLE_ID once the macOS target is added; this workflow will build,
+#   export a .pkg, upload macOS artifacts, and publish to TestFlight alongside iOS.
