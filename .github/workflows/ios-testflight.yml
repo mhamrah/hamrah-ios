@@ -60,7 +60,13 @@ jobs:
           gem install xcpretty
           xcpretty --version
 
-      - name: Import Apple code-signing certificates
+      - name: Import Apple development certificates (for testing)
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.DEVELOPMENT_CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.DEVELOPMENT_CERTIFICATES_PASSWORD }}
+
+      - name: Import Apple distribution certificates (for archiving)
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
@@ -184,7 +190,13 @@ jobs:
           gem install xcpretty
           xcpretty --version
 
-      - name: Import Apple code-signing certificates
+      - name: Import Apple development certificates (for testing)
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.DEVELOPMENT_CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.DEVELOPMENT_CERTIFICATES_PASSWORD }}
+
+      - name: Import Apple distribution certificates (for archiving)
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
