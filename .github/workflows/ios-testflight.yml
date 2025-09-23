@@ -85,6 +85,7 @@ jobs:
       - name: Archive iOS (Release)
         run: |
           set -euo pipefail
+          echo "Starting iOS archive..."
           xcodebuild \
             -project "${XCODE_PROJECT}" \
             -scheme "${IOS_SCHEME}" \
@@ -95,7 +96,7 @@ jobs:
             -allowProvisioningUpdates \
             -skipPackagePluginValidation \
             -archivePath "${BUILD_DIR}/App-iOS.xcarchive" \
-            clean archive | xcpretty || exit ${PIPESTATUS[0]}
+            clean archive || { echo "iOS archive failed"; exit 1; }
 
       - name: Create iOS export options
         run: |
@@ -200,7 +201,7 @@ jobs:
             -project "${XCODE_PROJECT}" \
             -scheme "${MACOS_SCHEME}" \
             -configuration Release \
-            -destination 'generic/platform=macOS,arch=arm64' \
+            -destination 'platform=macOS,arch=arm64' \
             -derivedDataPath "${DERIVED_DATA_PATH}" \
             -allowProvisioningUpdates \
             -skipPackagePluginValidation \
