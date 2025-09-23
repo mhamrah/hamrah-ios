@@ -624,7 +624,7 @@ class NativeAuthManager: NSObject, ObservableObject {
     func validateAccessToken() async -> Bool {
         guard let token = accessToken else { return false }
 
-        guard let userId = currentUser?.id else {
+        guard currentUser?.id != nil else {
             print("🔍 No user ID available for token validation")
             return false
         }
