@@ -90,6 +90,7 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' \
             -configuration Debug \
             -derivedDataPath "${DERIVED_DATA_PATH}" \
+            -allowProvisioningUpdates \
             -skipPackagePluginValidation \
             -enableCodeCoverage YES \
             clean test | xcpretty || exit ${PIPESTATUS[0]}
@@ -213,6 +214,7 @@ jobs:
             -destination 'platform=macOS' \
             -configuration Debug \
             -derivedDataPath "${DERIVED_DATA_PATH}" \
+            -allowProvisioningUpdates \
             -skipPackagePluginValidation \
             -enableCodeCoverage YES \
             clean test | xcpretty || exit ${PIPESTATUS[0]}
