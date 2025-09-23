@@ -33,10 +33,10 @@ env:
   # Use a broad "16.*" selector to pick the latest Xcode 16 available on the runner.
   XCODE_VERSION: ${{ vars.XCODE_VERSION || '16.*' }}
 
-  DERIVED_DATA_PATH: ${{ runner.temp }}/DerivedData
-  BUILD_DIR: ${{ runner.temp }}/build
-  EXPORT_DIR_IOS: ${{ runner.temp }}/export-ios
-  EXPORT_DIR_MACOS: ${{ runner.temp }}/export-macos
+  DERIVED_DATA_PATH: ${{ github.workspace }}/temp/DerivedData
+  BUILD_DIR: ${{ github.workspace }}/temp/build
+  EXPORT_DIR_IOS: ${{ github.workspace }}/temp/export-ios
+  EXPORT_DIR_MACOS: ${{ github.workspace }}/temp/export-macos
 
 jobs:
   ios-build-test-upload:
