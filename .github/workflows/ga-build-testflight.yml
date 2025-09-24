@@ -24,7 +24,6 @@ env:
   MACOS_SCHEME: ${{ vars.MACOS_SCHEME || '' }}
   MACOS_BUNDLE_ID: ${{ vars.MACOS_BUNDLE_ID || '' }}
   APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID || 'UR6RM9YCF7' }}
-  CODE_SIGN_IDENTITY: ${{ vars.CODE_SIGN_IDENTITY || 'Apple Distribution' }}
 
   # Xcode 16 is required for iOS 18.x SDKs used by this project.
   # Use a broad "16.*" selector to pick the latest Xcode 16 available on the runner.
@@ -33,7 +32,7 @@ env:
 jobs:
   ios-build-test-upload:
     name: Build, Test, and Upload iOS
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 60
 
     steps:
@@ -104,7 +103,7 @@ jobs:
       - name: Build Archive
         run: |
           set -o pipefail
-          echo "=== Forcing Automatic signing for iOS archive ==="
+          echo "=== Archive (automatic signing, no identity override) ==="
           xcodebuild -project "$XCODE_PROJECT" \
                      -scheme "$IOS_SCHEME" \
                      -archivePath "$RUNNER_TEMP/${IOS_SCHEME}.xcarchive" \
@@ -112,9 +111,7 @@ jobs:
                      -destination 'generic/platform=iOS' \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
                      CODE_SIGN_STYLE=Automatic \
-                     CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
-                     PROVISIONING_PROFILE_SPECIFIER="" \
-                     OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
+                     CODE_SIGN_IDENTITY="Apple Development" \
                      clean archive | tee build.log | xcpretty || BUILD_STATUS=$?
           EXIT_CODE=${BUILD_STATUS:-0}
           echo "Archive step exit code: $EXIT_CODE"
