@@ -3,9 +3,16 @@
 <plist version="1.0">
 <dict>
     <key>method</key>
-    <string>app-store</string>
+    <string>app-store-connect</string>
     <key>teamID</key>
     <string>UR6RM9YCF7</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>app.hamrah.ios</key>
+        <string>ios distribution</string>
+    </dict>
     <key>uploadBitcode</key>
     <false/>
     <key>uploadSymbols</key>

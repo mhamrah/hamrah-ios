@@ -148,10 +148,51 @@ jobs:
 
       - name: Export Archive
         run: |
+          set -o pipefail
+          echo "=== Primary export (manual signing) ==="
           xcodebuild -exportArchive \
-                    -archivePath $RUNNER_TEMP/${IOS_SCHEME}.xcarchive \
-                    -exportPath $RUNNER_TEMP/${IOS_SCHEME} \
-                    -exportOptionsPlist ExportOptions.plist
+                     -archivePath "$RUNNER_TEMP/${IOS_SCHEME}.xcarchive" \
+                     -exportPath "$RUNNER_TEMP/${IOS_SCHEME}" \
+                     -exportOptionsPlist ExportOptions.plist 2>&1 | tee export.log || EXPORT_STATUS=$?
+          EXPORT_STATUS=${EXPORT_STATUS:-0}
+          if [ $EXPORT_STATUS -ne 0 ]; then
+            echo "Primary export failed (status $EXPORT_STATUS). Attempting fallback with automatic signing..."
+            cat > ExportOptionsAuto.plist <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>teamID</key>
+  <string>UR6RM9YCF7</string>
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>uploadSymbols</key>
+  <true/>
+  <key>compileBitcode</key>
+  <false/>
+</dict>
+</plist>
+EOF
+            xcodebuild -exportArchive \
+                       -archivePath "$RUNNER_TEMP/${IOS_SCHEME}.xcarchive" \
+                       -exportPath "$RUNNER_TEMP/${IOS_SCHEME}-auto" \
+                       -exportOptionsPlist ExportOptionsAuto.plist -allowProvisioningUpdates 2>&1 | tee export-fallback.log || FALLBACK_STATUS=$?
+            FALLBACK_STATUS=${FALLBACK_STATUS:-0}
+            if [ $FALLBACK_STATUS -ne 0 ]; then
+              echo "Fallback export also failed (status $FALLBACK_STATUS)."
+              echo "::error::Both manual and automatic export attempts failed."
+              exit $FALLBACK_STATUS
+            else
+              echo "Fallback export succeeded."
+              # Normalize output path so downstream steps don't need logic changes
+              rm -rf "$RUNNER_TEMP/${IOS_SCHEME}"
+              mv "$RUNNER_TEMP/${IOS_SCHEME}-auto" "$RUNNER_TEMP/${IOS_SCHEME}"
+            fi
+          else
+            echo "Primary export succeeded."
+          fi
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
