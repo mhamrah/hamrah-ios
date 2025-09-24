@@ -467,7 +467,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = app.hamrah.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "iOS app development";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "ios distribution";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "macOS development";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -521,7 +521,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = app.hamrah.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "iOS app development";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "ios distribution";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "macOS development";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
