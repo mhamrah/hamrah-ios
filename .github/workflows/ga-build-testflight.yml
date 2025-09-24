@@ -158,23 +158,23 @@ jobs:
           if [ $EXPORT_STATUS -ne 0 ]; then
             echo "Primary export failed (status $EXPORT_STATUS). Attempting fallback with automatic signing..."
             cat > ExportOptionsAuto.plist <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store-connect</string>
-  <key>teamID</key>
-  <string>UR6RM9YCF7</string>
-  <key>signingStyle</key>
-  <string>automatic</string>
-  <key>uploadSymbols</key>
-  <true/>
-  <key>compileBitcode</key>
-  <false/>
-</dict>
-</plist>
-EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+              <key>method</key>
+              <string>app-store-connect</string>
+              <key>teamID</key>
+              <string>UR6RM9YCF7</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>compileBitcode</key>
+              <false/>
+            </dict>
+            </plist>
+            EOF
             xcodebuild -exportArchive \
                        -archivePath "$RUNNER_TEMP/${IOS_SCHEME}.xcarchive" \
                        -exportPath "$RUNNER_TEMP/${IOS_SCHEME}-auto" \
