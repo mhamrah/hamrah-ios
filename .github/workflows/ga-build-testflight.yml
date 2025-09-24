@@ -104,17 +104,37 @@ jobs:
       - name: Build Archive
         run: |
           set -o pipefail
+          echo "=== Forcing Automatic signing for iOS archive ==="
           xcodebuild -project "$XCODE_PROJECT" \
                      -scheme "$IOS_SCHEME" \
                      -archivePath "$RUNNER_TEMP/${IOS_SCHEME}.xcarchive" \
                      -configuration Release \
                      -destination 'generic/platform=iOS' \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+                     CODE_SIGN_STYLE=Automatic \
                      CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
+                     PROVISIONING_PROFILE_SPECIFIER="" \
                      OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
-                     clean archive | tee build.log | xcpretty
-          echo "Archive step exit code: $?"
+                     clean archive | tee build.log | xcpretty || BUILD_STATUS=$?
+          EXIT_CODE=${BUILD_STATUS:-0}
+          echo "Archive step exit code: $EXIT_CODE"
           echo "Build log stored at ./build.log"
+          exit $EXIT_CODE
+
+      - name: Show Build Log Tail on Failure
+        if: failure()
+        run: |
+          echo "===== Last 400 lines of build.log (failure) ====="
+          tail -400 build.log || true
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Export Archive
         run: |
