@@ -159,6 +159,9 @@ jobs:
             echo "::error::Manual export failed (status $EXPORT_STATUS)."
             exit $EXPORT_STATUS
           fi
+          echo "=== Export completed, checking output directory ==="
+          ls -la $RUNNER_TEMP/${IOS_SCHEME}/ || echo "Export directory not found"
+          find $RUNNER_TEMP/${IOS_SCHEME} -name "*.ipa" -exec ls -la {} \; || echo "No .ipa files found in export directory"
 
       - name: Upload Export Logs
         if: always()
@@ -169,10 +172,24 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Debug Environment and File Paths
+        run: |
+          echo "=== Environment Variables ==="
+          env | grep -E "(RUNNER_TEMP|IOS_SCHEME|XCODE_PROJECT)" | sort
+          echo "=== Runner temp directory contents ==="
+          ls -la ${{ runner.temp }}/
+          echo "=== Scheme-specific directory contents ==="
+          ls -la ${{ runner.temp }}/${IOS_SCHEME}/ || echo "Directory not found"
+          echo "=== Looking for .ipa files ==="
+          find ${{ runner.temp }} -name "*.ipa" -exec ls -la {} \; || echo "No .ipa files found"
+
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
+        env:
+          apiKey: ${{ secrets.APPLE_API_KEY }}
+          apiIssuer: ${{ secrets.APPLE_API_ISSUER }}
         with:
-          app-path: $RUNNER_TEMP/${IOS_SCHEME}/${IOS_SCHEME}.ipa
+          app-path: ${{ runner.temp }}/hamrah-ios/hamrah-ios.ipa
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
