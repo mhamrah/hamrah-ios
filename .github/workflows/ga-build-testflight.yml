@@ -184,12 +184,9 @@ jobs:
           find ${{ runner.temp }} -name "*.ipa" -exec ls -la {} \; || echo "No .ipa files found"
 
       - name: Upload to TestFlight
-        uses: apple-actions/upload-testflight-build@v1
-        env:
-          apiKey: ${{ secrets.APPLE_API_KEY }}
-          apiIssuer: ${{ secrets.APPLE_API_ISSUER }}
+        uses: apple-actions/upload-testflight-build@v3
         with:
           app-path: ${{ runner.temp }}/hamrah-ios/hamrah-ios.ipa
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID || secrets.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
