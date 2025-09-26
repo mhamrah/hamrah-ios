@@ -314,7 +314,9 @@ jobs:
           else
             echo "macOS provisioning profile not found at expected path; will try without profile specifier."
           fi
-          echo "=== Archive (manual Distribution signing) ==="
+          echo "=== Archive (automatic signing for TestFlight) ==="
+          # Use automatic signing since we need distribution certificates for TestFlight
+          # The iPhone Distribution certificate should work for both iOS and macOS with automatic signing
           xcodebuild -project "$XCODE_PROJECT" \
                      -scheme "$MACOS_SCHEME" \
                      -archivePath "$RUNNER_TEMP/${MACOS_SCHEME}-macOS.xcarchive" \
@@ -323,10 +325,8 @@ jobs:
                      -skipPackagePluginValidation \
                      -skipMacroValidation \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-                     CODE_SIGN_STYLE=Manual \
+                     CODE_SIGN_STYLE=Automatic \
                      CODE_SIGN_IDENTITY="iPhone Distribution: Michael Hamrah (UR6RM9YCF7)" \
-                     PROVISIONING_PROFILE_SPECIFIER="$MACOS_PROFILE_NAME" \
-                     CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
                      OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
                      clean archive | tee build-macos.log | xcpretty
           BUILD_STATUS=${PIPESTATUS[0]}
