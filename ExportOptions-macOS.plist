@@ -7,12 +7,7 @@
     <key>teamID</key>
     <string>UR6RM9YCF7</string>
     <key>signingStyle</key>
-    <string>manual</string>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>app.hamrah.ios</key>
-        <string>macos distribution</string>
-    </dict>
+    <string>automatic</string>
     <key>uploadBitcode</key>
     <false/>
     <key>uploadSymbols</key>
