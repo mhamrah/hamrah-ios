@@ -256,10 +256,31 @@ jobs:
         run: |
           echo "=== Schemes ==="
           xcodebuild -list -project "$XCODE_PROJECT"
-          echo "=== Available Signing Identities ==="
+
+          echo "=== Available Signing Identities in Keychain ==="
           security find-identity -v -p codesigning $RUNNER_TEMP/app-signing.keychain-db
+
+          echo "=== All Available Signing Identities (System) ==="
+          security find-identity -v -p codesigning || true
+
+          echo "=== Available Provisioning Profiles ==="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No provisioning profiles directory"
+
+          echo "=== Provisioning Profile Details ==="
+          for profile in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/*.provisionprofile; do
+            if [ -f "$profile" ]; then
+              echo "Profile: $profile"
+              security cms -D -i "$profile" 2>/dev/null | grep -A5 -B5 "Name\|TeamIdentifier\|ApplicationIdentifierPrefix\|Platform" || echo "Could not read profile"
+              echo "---"
+            fi
+          done
+
+          echo "=== macOS Certificate Validation ==="
+          # Check if our certificate works for macOS signing
+          codesign --verify --verbose=4 /System/Applications/Calculator.app 2>&1 | head -5 || echo "Calculator test failed"
+
           echo "=== Key Build Settings (Release) ==="
-          xcodebuild -showBuildSettings -project "$XCODE_PROJECT" -scheme "$MACOS_SCHEME" -configuration Release -destination 'generic/platform=macOS' | egrep 'DEVELOPMENT_TEAM|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE_SPECIFIER|PRODUCT_BUNDLE_IDENTIFIER'
+          xcodebuild -showBuildSettings -project "$XCODE_PROJECT" -scheme "$MACOS_SCHEME" -configuration Release -destination 'generic/platform=macOS' | egrep 'DEVELOPMENT_TEAM|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE_SPECIFIER|PRODUCT_BUNDLE_IDENTIFIER|SUPPORTED_PLATFORMS'
 
       - name: Build macOS Archive
         id: macos-build
@@ -288,6 +309,27 @@ jobs:
         run: |
           echo "===== Last 400 lines of build-macos.log (failure) ====="
           tail -400 build-macos.log || true
+
+          echo ""
+          echo "===== Post-Failure Diagnostics ====="
+          echo "=== Certificates that Xcode can see ==="
+          security find-identity -v -p codesigning || true
+
+          echo "=== What provisioning profiles does Xcode see? ==="
+          find ~/Library/MobileDevice -name "*.mobileprovision" -o -name "*.provisionprofile" 2>/dev/null | while read profile; do
+            echo "Found profile: $profile"
+            security cms -D -i "$profile" 2>/dev/null | plutil -convert json -o - - 2>/dev/null | jq -r '.Name, .TeamIdentifier[0], .ApplicationIdentifierPrefix[0]' 2>/dev/null || echo "Could not parse"
+          done
+
+          echo "=== Certificate Details ==="
+          security find-identity -v -p codesigning $RUNNER_TEMP/app-signing.keychain-db | while read line; do
+            if [[ $line =~ ([A-F0-9]{40}) ]]; then
+              HASH="${BASH_REMATCH[1]}"
+              echo "Certificate: $line"
+              security find-certificate -c "$HASH" -p $RUNNER_TEMP/app-signing.keychain-db | openssl x509 -text -noout | grep -E "Subject:|Issuer:|Not After" || true
+              echo "---"
+            fi
+          done
 
       - name: Upload Build Log
         if: always()
