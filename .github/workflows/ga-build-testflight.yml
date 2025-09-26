@@ -118,15 +118,15 @@ jobs:
             echo "Provisioning profile not found at expected path; proceeding may fail."
             PROFILE_NAME=""
           fi
-          echo "=== Archive (manual Distribution signing) ==="
+          echo "=== Archive (automatic signing for TestFlight) ==="
           xcodebuild -project "$XCODE_PROJECT" \
                      -scheme "$IOS_SCHEME" \
                      -archivePath "$RUNNER_TEMP/${IOS_SCHEME}.xcarchive" \
                      -configuration Release \
                      -destination 'generic/platform=iOS' \
+                     -allowProvisioningUpdates \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-                     CODE_SIGN_STYLE=Manual \
-                     CODE_SIGN_IDENTITY="Apple Distribution" \
+                     CODE_SIGN_STYLE=Automatic \
                      OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
                      clean archive | tee build.log | xcpretty
           BUILD_STATUS=${PIPESTATUS[0]}
@@ -315,8 +315,8 @@ jobs:
             echo "macOS provisioning profile not found at expected path; will try without profile specifier."
           fi
           echo "=== Archive (fully automatic signing for TestFlight) ==="
-          # Use fully automatic signing - let Xcode choose certificates and profiles
-          # Only specify team ID and keychain, let Xcode handle the rest
+          # Use fully automatic signing with -allowProvisioningUpdates for CI
+          # This allows Xcode to create/update profiles automatically in CI environment
           xcodebuild -project "$XCODE_PROJECT" \
                      -scheme "$MACOS_SCHEME" \
                      -archivePath "$RUNNER_TEMP/${MACOS_SCHEME}-macOS.xcarchive" \
@@ -324,6 +324,7 @@ jobs:
                      -destination 'generic/platform=macOS' \
                      -skipPackagePluginValidation \
                      -skipMacroValidation \
+                     -allowProvisioningUpdates \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
                      CODE_SIGN_STYLE=Automatic \
                      OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
