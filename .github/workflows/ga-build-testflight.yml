@@ -27,6 +27,7 @@ env:
 
   # Xcode 16 is required for iOS 18.x SDKs used by this project.
   # Use a broad "16.*" selector to pick the latest Xcode 16 available on the runner.
+  # Updated with automatic signing and allowProvisioningUpdates
   XCODE_VERSION: ${{ vars.XCODE_VERSION || 'latest-stable' }}
 
 jobs:
