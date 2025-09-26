@@ -57,14 +57,16 @@ jobs:
           gem install xcpretty
           xcpretty --version
 
-      - name: Install Certificates for Automatic Signing
+      - name: Install Certificates and Provisioning Profile for Hybrid Signing
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
           P12_PASSWORD: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           # Create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
 
           # Fail if keychain password is not set
@@ -75,6 +77,9 @@ jobs:
 
           # Import certificate from secrets
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+          # Import provisioning profile from secrets
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
 
           # Create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
@@ -88,9 +93,13 @@ jobs:
           security default-keychain -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
+          # Install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+
           echo "=== Available signing identities (after import) ==="
           security find-identity -v -p codesigning $KEYCHAIN_PATH || true
-          echo "=== Done installing signing certificate ==="
+          echo "=== Done installing signing certificate and provisioning profile ==="
       - name: Pre-flight Diagnostics
         run: |
           echo "=== Schemes ==="
@@ -102,17 +111,15 @@ jobs:
         id: ios-build
         run: |
           set -o pipefail
-          echo "=== Archive (automatic signing with allowProvisioningUpdates) ==="
-          # Use automatic signing with allowProvisioningUpdates for CI
-          # This allows Xcode to use existing profiles and certificates without requiring account access
+          echo "=== Archive (automatic signing with manual provisioning profiles) ==="
+          # Use automatic signing in Xcode project but with manually installed provisioning profiles
+          # This works in CI because we manually install the profiles above
           xcodebuild -project "$XCODE_PROJECT" \
                      -scheme "$IOS_SCHEME" \
                      -archivePath "$RUNNER_TEMP/${IOS_SCHEME}.xcarchive" \
                      -configuration Release \
                      -destination 'generic/platform=iOS' \
-                     -allowProvisioningUpdates \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-                     CODE_SIGN_STYLE=Automatic \
                      OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
                      clean archive | tee build.log | xcpretty
           BUILD_STATUS=${PIPESTATUS[0]}
@@ -206,14 +213,16 @@ jobs:
           gem install xcpretty
           xcpretty --version
 
-      - name: Install Certificates for Automatic Signing
+      - name: Install Certificates and Provisioning Profile for Hybrid Signing
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
           P12_PASSWORD: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+          MACOS_BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.MACOS_BUILD_PROVISION_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           # Create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.provisionprofile
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
 
           # Fail if keychain password is not set
@@ -224,6 +233,9 @@ jobs:
 
           # Import certificate from secrets
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+          # Import provisioning profile from secrets
+          echo -n "$MACOS_BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
 
           # Create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
@@ -237,9 +249,13 @@ jobs:
           security default-keychain -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
+          # Install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+
           echo "=== Available signing identities (after import) ==="
           security find-identity -v -p codesigning $KEYCHAIN_PATH || true
-          echo "=== Done installing signing certificate ==="
+          echo "=== Done installing signing certificate and provisioning profile ==="
 
       - name: Pre-flight Diagnostics
         run: |
@@ -263,9 +279,9 @@ jobs:
         id: macos-build
         run: |
           set -o pipefail
-          echo "=== Archive (automatic signing with allowProvisioningUpdates) ==="
-          # Use automatic signing with allowProvisioningUpdates for CI
-          # This allows Xcode to use existing profiles and certificates without requiring account access
+          echo "=== Archive (automatic signing with manual provisioning profiles) ==="
+          # Use automatic signing in Xcode project but with manually installed provisioning profiles
+          # This works in CI because we manually install the profiles above
           xcodebuild -project "$XCODE_PROJECT" \
                      -scheme "$MACOS_SCHEME" \
                      -archivePath "$RUNNER_TEMP/${MACOS_SCHEME}-macOS.xcarchive" \
@@ -273,9 +289,7 @@ jobs:
                      -destination 'generic/platform=macOS' \
                      -skipPackagePluginValidation \
                      -skipMacroValidation \
-                     -allowProvisioningUpdates \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-                     CODE_SIGN_STYLE=Automatic \
                      OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
                      clean archive | tee build-macos.log | xcpretty
           BUILD_STATUS=${PIPESTATUS[0]}
