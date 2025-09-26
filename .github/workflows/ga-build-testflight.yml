@@ -100,6 +100,92 @@ jobs:
           echo "=== Available signing identities (after import) ==="
           security find-identity -v -p codesigning $KEYCHAIN_PATH || true
           echo "=== Done installing signing certificate and provisioning profile ==="
+
+      - name: Diagnostic - List Provisioning Profiles and Capabilities
+        run: |
+          echo "=== All Provisioning Profiles in ~/Library/MobileDevice/Provisioning Profiles ==="
+          find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" -o -name "*.provisionprofile" 2>/dev/null | while read profile; do
+            echo ""
+            echo "📱 Profile: $(basename "$profile")"
+            echo "📄 Full path: $profile"
+
+            # Extract and parse the profile
+            if security cms -D -i "$profile" 2>/dev/null | plutil -convert json -o - - 2>/dev/null > /tmp/profile.json; then
+              echo "✅ Profile parsed successfully"
+
+              # Basic info
+              echo "🏷️  Name: $(cat /tmp/profile.json | jq -r '.Name // "N/A"')"
+              echo "📱 Platform: $(cat /tmp/profile.json | jq -r '.Platform[]? // "Unknown"' | tr '\n' ',' | sed 's/,$//')"
+              echo "🆔 App ID: $(cat /tmp/profile.json | jq -r '.Entitlements."application-identifier" // "N/A"' | sed 's/.*\.//')"
+              echo "👥 Team: $(cat /tmp/profile.json | jq -r '.TeamName // "N/A"')"
+              echo "🔑 Team ID: $(cat /tmp/profile.json | jq -r '.TeamIdentifier[0] // "N/A"')"
+              echo "📅 Expires: $(cat /tmp/profile.json | jq -r '.ExpirationDate // "N/A"')"
+              echo "🛠️  Provision Devices Count: $(cat /tmp/profile.json | jq -r '.ProvisionedDevices // [] | length')"
+
+              # Entitlements/Capabilities
+              echo "🎯 Entitlements:"
+              cat /tmp/profile.json | jq -r '.Entitlements | keys[]' 2>/dev/null | while read key; do
+                value=$(cat /tmp/profile.json | jq -r ".Entitlements.\"$key\"" 2>/dev/null)
+                case "$key" in
+                  "com.apple.developer.applesignin")
+                    echo "  ✅ Sign in with Apple: $value"
+                    ;;
+                  "com.apple.developer.associated-domains")
+                    echo "  ✅ Associated Domains: $value"
+                    ;;
+                  "com.apple.developer.devicecheck.appattest-environment")
+                    echo "  ✅ App Attest: $value"
+                    ;;
+                  "com.apple.security.application-groups")
+                    echo "  ✅ App Groups: $value"
+                    ;;
+                  "com.apple.developer.in-app-payments")
+                    echo "  ✅ In-App Purchase: $value"
+                    ;;
+                  "application-identifier")
+                    echo "  🆔 App Identifier: $value"
+                    ;;
+                  "keychain-access-groups")
+                    echo "  🔐 Keychain Access: $value"
+                    ;;
+                  "com.apple.security.app-sandbox")
+                    echo "  🏖️  App Sandbox: $value"
+                    ;;
+                  "com.apple.security.network.client")
+                    echo "  🌐 Network Client: $value"
+                    ;;
+                  "com.apple.security.personal-information.addressbook")
+                    echo "  📇 Address Book: $value"
+                    ;;
+                  "com.apple.security.personal-information.calendars")
+                    echo "  📅 Calendars: $value"
+                    ;;
+                  "com.apple.security.personal-information.location")
+                    echo "  📍 Location: $value"
+                    ;;
+                  *)
+                    echo "  ⚙️  $key: $value"
+                    ;;
+                esac
+              done
+
+              # Certificates
+              echo "🔐 Certificates in profile:"
+              cat /tmp/profile.json | jq -r '.DeveloperCertificates[]?' 2>/dev/null | while read cert; do
+                echo "$cert" | base64 -d 2>/dev/null | openssl x509 -subject -noout 2>/dev/null | sed 's/subject=/  📜 /' || echo "  📜 Certificate (parse failed)"
+              done
+
+            else
+              echo "❌ Failed to parse profile"
+            fi
+            echo "═══════════════════════════════════════"
+          done
+
+          echo ""
+          echo "=== Profile Count Summary ==="
+          echo "📊 Total .mobileprovision files: $(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | wc -l)"
+          echo "📊 Total .provisionprofile files: $(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.provisionprofile" 2>/dev/null | wc -l)"
+
       - name: Pre-flight Diagnostics
         run: |
           echo "=== Schemes ==="
@@ -256,6 +342,91 @@ jobs:
           echo "=== Available signing identities (after import) ==="
           security find-identity -v -p codesigning $KEYCHAIN_PATH || true
           echo "=== Done installing signing certificate and provisioning profile ==="
+
+      - name: Diagnostic - List Provisioning Profiles and Capabilities (macOS)
+        run: |
+          echo "=== All Provisioning Profiles in ~/Library/MobileDevice/Provisioning Profiles ==="
+          find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" -o -name "*.provisionprofile" 2>/dev/null | while read profile; do
+            echo ""
+            echo "📱 Profile: $(basename "$profile")"
+            echo "📄 Full path: $profile"
+
+            # Extract and parse the profile
+            if security cms -D -i "$profile" 2>/dev/null | plutil -convert json -o - - 2>/dev/null > /tmp/profile.json; then
+              echo "✅ Profile parsed successfully"
+
+              # Basic info
+              echo "🏷️  Name: $(cat /tmp/profile.json | jq -r '.Name // "N/A"')"
+              echo "📱 Platform: $(cat /tmp/profile.json | jq -r '.Platform[]? // "Unknown"' | tr '\n' ',' | sed 's/,$//')"
+              echo "🆔 App ID: $(cat /tmp/profile.json | jq -r '.Entitlements."application-identifier" // "N/A"' | sed 's/.*\.//')"
+              echo "👥 Team: $(cat /tmp/profile.json | jq -r '.TeamName // "N/A"')"
+              echo "🔑 Team ID: $(cat /tmp/profile.json | jq -r '.TeamIdentifier[0] // "N/A"')"
+              echo "📅 Expires: $(cat /tmp/profile.json | jq -r '.ExpirationDate // "N/A"')"
+              echo "🛠️  Provision Devices Count: $(cat /tmp/profile.json | jq -r '.ProvisionedDevices // [] | length')"
+
+              # Entitlements/Capabilities
+              echo "🎯 Entitlements:"
+              cat /tmp/profile.json | jq -r '.Entitlements | keys[]' 2>/dev/null | while read key; do
+                value=$(cat /tmp/profile.json | jq -r ".Entitlements.\"$key\"" 2>/dev/null)
+                case "$key" in
+                  "com.apple.developer.applesignin")
+                    echo "  ✅ Sign in with Apple: $value"
+                    ;;
+                  "com.apple.developer.associated-domains")
+                    echo "  ✅ Associated Domains: $value"
+                    ;;
+                  "com.apple.developer.devicecheck.appattest-environment")
+                    echo "  ✅ App Attest: $value"
+                    ;;
+                  "com.apple.security.application-groups")
+                    echo "  ✅ App Groups: $value"
+                    ;;
+                  "com.apple.developer.in-app-payments")
+                    echo "  ✅ In-App Purchase: $value"
+                    ;;
+                  "application-identifier")
+                    echo "  🆔 App Identifier: $value"
+                    ;;
+                  "keychain-access-groups")
+                    echo "  🔐 Keychain Access: $value"
+                    ;;
+                  "com.apple.security.app-sandbox")
+                    echo "  🏖️  App Sandbox: $value"
+                    ;;
+                  "com.apple.security.network.client")
+                    echo "  🌐 Network Client: $value"
+                    ;;
+                  "com.apple.security.personal-information.addressbook")
+                    echo "  📇 Address Book: $value"
+                    ;;
+                  "com.apple.security.personal-information.calendars")
+                    echo "  📅 Calendars: $value"
+                    ;;
+                  "com.apple.security.personal-information.location")
+                    echo "  📍 Location: $value"
+                    ;;
+                  *)
+                    echo "  ⚙️  $key: $value"
+                    ;;
+                esac
+              done
+
+              # Certificates
+              echo "🔐 Certificates in profile:"
+              cat /tmp/profile.json | jq -r '.DeveloperCertificates[]?' 2>/dev/null | while read cert; do
+                echo "$cert" | base64 -d 2>/dev/null | openssl x509 -subject -noout 2>/dev/null | sed 's/subject=/  📜 /' || echo "  📜 Certificate (parse failed)"
+              done
+
+            else
+              echo "❌ Failed to parse profile"
+            fi
+            echo "═══════════════════════════════════════"
+          done
+
+          echo ""
+          echo "=== Profile Count Summary ==="
+          echo "📊 Total .mobileprovision files: $(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | wc -l)"
+          echo "📊 Total .provisionprofile files: $(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.provisionprofile" 2>/dev/null | wc -l)"
 
       - name: Pre-flight Diagnostics
         run: |
