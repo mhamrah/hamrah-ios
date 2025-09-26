@@ -271,9 +271,9 @@ jobs:
                      -archivePath "$RUNNER_TEMP/${MACOS_SCHEME}-macOS.xcarchive" \
                      -configuration Release \
                      -destination 'generic/platform=macOS' \
-                     -allowProvisioningUpdates \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-                     CODE_SIGN_STYLE=Automatic \
+                     CODE_SIGN_STYLE=Manual \
+                     CODE_SIGN_IDENTITY="iPhone Distribution: Michael Hamrah (UR6RM9YCF7)" \
                      PROVISIONING_PROFILE_SPECIFIER="" \
                      OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
                      clean archive | tee build-macos.log | xcpretty
