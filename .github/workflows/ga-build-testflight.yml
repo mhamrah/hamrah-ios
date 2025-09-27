@@ -323,6 +323,10 @@ jobs:
           # Import provisioning profile from secrets
           echo -n "$MACOS_BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
 
+          security cms -D -i ios_distribution.mobileprovision
+          openssl smime -verify -noverify -inform DER -in $PP_PATH
+          openssl pkcs7 -inform DER -in $PP_PATH -print_certs -noout
+
           # Create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
