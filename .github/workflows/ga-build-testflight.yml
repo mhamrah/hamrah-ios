@@ -97,6 +97,10 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
+          security cms -D -i  $PP_PATH
+          openssl smime -verify -noverify -inform DER -in $PP_PATH
+          openssl pkcs7 -inform DER -in $PP_PATH -print_certs -noout
+
           echo "=== Available signing identities (after import) ==="
           security find-identity -v -p codesigning $KEYCHAIN_PATH || true
           echo "=== Done installing signing certificate and provisioning profile ==="
@@ -323,7 +327,7 @@ jobs:
           # Import provisioning profile from secrets
           echo -n "$MACOS_BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
 
-          security cms -D -i ios_distribution.mobileprovision
+          security cms -D -i $PP_PATH
           openssl smime -verify -noverify -inform DER -in $PP_PATH
           openssl pkcs7 -inform DER -in $PP_PATH -print_certs -noout
 
