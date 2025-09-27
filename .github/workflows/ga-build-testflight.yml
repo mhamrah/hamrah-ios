@@ -97,8 +97,11 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
+          echo "=== Security CMS ==="
           security cms -D -i  $PP_PATH
+          echo "=== openssl smime ==="
           openssl smime -verify -noverify -inform DER -in $PP_PATH
+          echo "=== openssl pkcs7 ==="
           openssl pkcs7 -inform DER -in $PP_PATH -print_certs -noout
 
           echo "=== Available signing identities (after import) ==="
@@ -113,9 +116,25 @@ jobs:
             echo "📱 Profile: $(basename "$profile")"
             echo "📄 Full path: $profile"
 
-            # Extract and parse the profile
-            if security cms -D -i "$profile" 2>/dev/null | plutil -convert json -o - - 2>/dev/null > /tmp/profile.json; then
-              echo "✅ Profile parsed successfully"
+            # Extract and parse the profile using Python to avoid plutil issues
+            if security cms -D -i "$profile" > /tmp/profile.plist 2>/dev/null; then
+              echo "✅ Profile extracted successfully"
+
+              # Convert to JSON using Python (more reliable than plutil for provisioning profiles)
+              if python3 -c "
+import plistlib
+import json
+try:
+    with open('/tmp/profile.plist', 'rb') as f:
+        plist_data = plistlib.load(f)
+    with open('/tmp/profile.json', 'w') as f:
+        json.dump(plist_data, f, indent=2, default=str)
+    print('✅ Profile parsed to JSON successfully')
+except Exception as e:
+    print(f'❌ JSON conversion failed: {e}')
+    exit(1)
+" 2>/dev/null; then
+                echo "✅ Profile parsed successfully"
 
               # Basic info
               echo "🏷️  Name: $(cat /tmp/profile.json | jq -r '.Name // "N/A"')"
@@ -210,6 +229,7 @@ jobs:
                      -configuration Release \
                      -destination 'generic/platform=iOS' \
                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+                     PROVISIONING_PROFILE_SPECIFIER="f377d395-7d32-4e8f-bbd7-5ee701ce191e" \
                      OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
                      clean archive | tee build.log | xcpretty
           BUILD_STATUS=${PIPESTATUS[0]}
@@ -359,9 +379,25 @@ jobs:
             echo "📱 Profile: $(basename "$profile")"
             echo "📄 Full path: $profile"
 
-            # Extract and parse the profile
-            if security cms -D -i "$profile" 2>/dev/null | plutil -convert json -o - - 2>/dev/null > /tmp/profile.json; then
-              echo "✅ Profile parsed successfully"
+            # Extract and parse the profile using Python to avoid plutil issues
+            if security cms -D -i "$profile" > /tmp/profile.plist 2>/dev/null; then
+              echo "✅ Profile extracted successfully"
+
+              # Convert to JSON using Python (more reliable than plutil for provisioning profiles)
+              if python3 -c "
+import plistlib
+import json
+try:
+    with open('/tmp/profile.plist', 'rb') as f:
+        plist_data = plistlib.load(f)
+    with open('/tmp/profile.json', 'w') as f:
+        json.dump(plist_data, f, indent=2, default=str)
+    print('✅ Profile parsed to JSON successfully')
+except Exception as e:
+    print(f'❌ JSON conversion failed: {e}')
+    exit(1)
+" 2>/dev/null; then
+                echo "✅ Profile parsed successfully"
 
               # Basic info
               echo "🏷️  Name: $(cat /tmp/profile.json | jq -r '.Name // "N/A"')"

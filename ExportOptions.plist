@@ -11,7 +11,7 @@
     <key>provisioningProfiles</key>
     <dict>
         <key>app.hamrah.ios</key>
-        <string>ios distribution</string>
+        <string>f377d395-7d32-4e8f-bbd7-5ee701ce191e</string>
     </dict>
     <key>uploadBitcode</key>
     <false/>
