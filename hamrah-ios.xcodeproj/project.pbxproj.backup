@@ -8,13 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		3A13B8742E54C42C000DFCC2 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3A13B8732E54C42C000DFCC2 /* GoogleSignIn */; };
-		5FEXTBLD0001 /* HamrahShare.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 5FEXTPRD0001 /* HamrahShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		5FEXTSRCFILE0001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0001 /* ShareViewController.swift */; };
-		5FEXTSRCFILE0002 /* ShareExtensionDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0002 /* ShareExtensionDataStack.swift */; };
-		5FEXTSRCFILE0003 /* LinkEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0003 /* LinkEntity.swift */; };
-		5FEXTSRCFILE0004 /* TagEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0004 /* TagEntity.swift */; };
-		5FEXTSRCFILE0005 /* SyncCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0005 /* SyncCursor.swift */; };
-		5FEXTSRCFILE0006 /* UserPrefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0006 /* UserPrefs.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,59 +25,19 @@
 			remoteGlobalIDString = 3AC7BF752E4900DF00D7AA35;
 			remoteInfo = "hamrah-ios";
 		};
-		5FEXTPRX0001 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 3AC7BF6E2E4900DF00D7AA35 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 5FEXTTGT0001;
-			remoteInfo = HamrahShare;
-		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		5FEXTBED0001 /* Embed App Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				5FEXTBLD0001 /* HamrahShare.appex in Embed App Extensions */,
-			);
-			name = "Embed App Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		3AC7BF762E4900DF00D7AA35 /* hamrah-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "hamrah-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3AC7BF862E4900E000D7AA35 /* hamrah-ios-tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "hamrah-ios-tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3AC7BF902E4900E000D7AA35 /* hamrah-ios-uitests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "hamrah-ios-uitests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5FEXTPRD0001 /* HamrahShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HamrahShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		5FEXTSRCREF0001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShareViewController.swift; path = ShareExtension/Sources/ShareViewController.swift; sourceTree = SOURCE_ROOT; };
-		5FEXTSRCREF0002 /* ShareExtensionDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShareExtensionDataStack.swift; path = ShareExtension/Sources/Utilities/ShareExtensionDataStack.swift; sourceTree = SOURCE_ROOT; };
-		5FEXTSRCREF0003 /* LinkEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LinkEntity.swift; path = "hamrah-ios/Core/Models/Links/LinkEntity.swift"; sourceTree = SOURCE_ROOT; };
-		5FEXTSRCREF0004 /* TagEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TagEntity.swift; path = "hamrah-ios/Core/Models/Links/TagEntity.swift"; sourceTree = SOURCE_ROOT; };
-		5FEXTSRCREF0005 /* SyncCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SyncCursor.swift; path = "hamrah-ios/Core/Models/Links/SyncCursor.swift"; sourceTree = SOURCE_ROOT; };
-		5FEXTSRCREF0006 /* UserPrefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UserPrefs.swift; path = "hamrah-ios/Core/Models/Links/UserPrefs.swift"; sourceTree = SOURCE_ROOT; };
 		AAASSETSF1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = "hamrah-ios/Assets.xcassets"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		3AC7BF782E4900DF00D7AA36 /* Exceptions for "hamrah-ios" folder in "hamrah-ios" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 3AC7BF752E4900DF00D7AA35 /* hamrah-ios */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3AC7BF782E4900DF00D7AA35 /* hamrah-ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				3AC7BF782E4900DF00D7AA36 /* Exceptions for "hamrah-ios" folder in "hamrah-ios" target */,
-			);
 			path = "hamrah-ios";
 			sourceTree = "<group>";
 		};
@@ -144,12 +97,6 @@
 			isa = PBXGroup;
 			children = (
 				AAASSETSF1 /* Assets.xcassets */,
-				5FEXTSRCREF0001 /* ShareViewController.swift */,
-				5FEXTSRCREF0002 /* ShareExtensionDataStack.swift */,
-				5FEXTSRCREF0003 /* LinkEntity.swift */,
-				5FEXTSRCREF0004 /* TagEntity.swift */,
-				5FEXTSRCREF0005 /* SyncCursor.swift */,
-				5FEXTSRCREF0006 /* UserPrefs.swift */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -187,12 +134,10 @@
 				3AC7BF722E4900DF00D7AA35 /* Sources */,
 				3AC7BF732E4900DF00D7AA35 /* Frameworks */,
 				3AC7BF742E4900DF00D7AA35 /* Resources */,
-				5FEXTBED0001 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				5FEXTDEP0001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				3AC7BF782E4900DF00D7AA35 /* hamrah-ios */,
@@ -371,12 +316,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5FEXTSRCFILE0001 /* ShareViewController.swift in Sources */,
-				5FEXTSRCFILE0002 /* ShareExtensionDataStack.swift in Sources */,
-				5FEXTSRCFILE0003 /* LinkEntity.swift in Sources */,
-				5FEXTSRCFILE0004 /* TagEntity.swift in Sources */,
-				5FEXTSRCFILE0005 /* SyncCursor.swift in Sources */,
-				5FEXTSRCFILE0006 /* UserPrefs.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -393,165 +332,25 @@
 			target = 3AC7BF752E4900DF00D7AA35 /* hamrah-ios */;
 			targetProxy = 3AC7BF912E4900E000D7AA35 /* PBXContainerItemProxy */;
 		};
-		5FEXTDEP0001 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 5FEXTTGT0001 /* HamrahShare */;
-			targetProxy = 5FEXTPRX0001 /* PBXContainerItemProxy */;
-		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		3A3FC0A52E8CCB28009D6FD6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN_UNUSUED_VARIABLE = YES;
-				CODE_SIGN_ENTITLEMENTS = ShareExtension/Sources/ShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = UR6RM9YCF7;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ShareExtension/Sources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Hamrah Share";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = app.hamrah.ios.ShareExtension;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				PRODUCT_NAME = HamrahShare;
 			};
 			name = Debug;
 		};
 		3A3FC0A62E8CCB28009D6FD6 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN_UNUSUED_VARIABLE = YES;
-				CODE_SIGN_ENTITLEMENTS = ShareExtension/Sources/ShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = UR6RM9YCF7;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ShareExtension/Sources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Hamrah Share";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = app.hamrah.ios.ShareExtension;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				PRODUCT_NAME = HamrahShare;
 			};
 			name = Release;
 		};
@@ -685,6 +484,7 @@
 				DEVELOPMENT_TEAM = UR6RM9YCF7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "hamrah-ios/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Hamrah;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -732,6 +532,7 @@
 				DEVELOPMENT_TEAM = UR6RM9YCF7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "hamrah-ios/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Hamrah;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;

@@ -2,6 +2,28 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleIdentifier</key>
+	<string>app.hamrah.ios</string>
+	<key>CFBundleName</key>
+	<string>Hamrah</string>
+	<key>CFBundleDisplayName</key>
+	<string>Hamrah</string>
+	<key>CFBundleVersion</key>
+	<string>108</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>app.hamrah.ios.sync</string>
+	</array>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>CFBundleURLTypes</key>
@@ -27,14 +49,11 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>107139115848-jvf449cojr174ocan4vpanddh8i48oko.apps.googleusercontent.com</string>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>app.hamrah.ios.sync</string>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
 		<string>fetch</string>
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>
