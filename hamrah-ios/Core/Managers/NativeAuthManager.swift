@@ -103,9 +103,12 @@ class NativeAuthManager: NSObject, ObservableObject {
             case authMethod = "auth_method"
             case createdAt = "created_at"
         }
-        
+
         // Explicit memberwise initializer
-        init(id: String, email: String, name: String?, picture: String?, authMethod: String, createdAt: String?) {
+        init(
+            id: String, email: String, name: String?, picture: String?, authMethod: String,
+            createdAt: String?
+        ) {
             self.id = id
             self.email = email
             self.name = name
@@ -735,9 +738,10 @@ class NativeAuthManager: NSObject, ObservableObject {
 
     func isTokenExpiringSoon() -> Bool {
         // Check Keychain first (current storage), then UserDefaults (for backward compatibility/tests)
-        let expiresAt = KeychainManager.shared.retrieveDouble(for: "hamrah_token_expires_at") 
+        let expiresAt =
+            KeychainManager.shared.retrieveDouble(for: "hamrah_token_expires_at")
             ?? UserDefaults.standard.double(forKey: "hamrah_token_expires_at")
-        
+
         guard expiresAt > 0 else { return true }
 
         let fiveMinutesFromNow = Date().timeIntervalSince1970 + (5 * 60)  // 5 minutes
@@ -805,7 +809,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         UserDefaults.standard.removeObject(forKey: "hamrah_is_authenticated")
         UserDefaults.standard.removeObject(forKey: "hamrah_auth_timestamp")
         UserDefaults.standard.removeObject(forKey: "hamrah_token_expires_at")
-        
+
         // Don't clear last used email for passkey auto-login
     }
 
@@ -835,10 +839,24 @@ class NativeAuthManager: NSObject, ObservableObject {
         print("🚪 User logged out")
     }
 
-    // MARK: - Test Support
+    // MARK: - Authentication State Management
 
     func loadAuthenticationState() async {
-        loadStoredAuth()
+        await MainActor.run {
+            loadStoredAuth()
+        }
+    }
+
+    func hasValidStoredTokens() -> Bool {
+        let keychain = KeychainManager.shared
+        let hasAccessToken = keychain.retrieveString(for: "hamrah_access_token") != nil
+        let hasRefreshToken = keychain.retrieveString(for: "hamrah_refresh_token") != nil
+        return hasAccessToken || hasRefreshToken
+    }
+
+    func forceReauthentication() {
+        print("🔒 Forcing reauthentication - clearing auth state")
+        logout()
     }
 }
 

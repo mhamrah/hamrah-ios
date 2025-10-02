@@ -17,17 +17,7 @@ struct RootView: View {
             ProgressiveAuthView()
                 .environmentObject(nativeAuthManager)
                 .environmentObject(biometricManager)
-                .toolbar {
-                    if nativeAuthManager.isAuthenticated {
-                        NavigationLink {
-                            SettingsView()
-                                .environmentObject(nativeAuthManager)
-                                .environmentObject(biometricManager)
-                        } label: {
-                            Image(systemName: "gearshape")
-                        }
-                    }
-                }
+
         }
     }
 

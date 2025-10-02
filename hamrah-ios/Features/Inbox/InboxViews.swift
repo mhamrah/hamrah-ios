@@ -11,6 +11,8 @@ import WebKit
 struct InboxView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
+    @EnvironmentObject var authManager: NativeAuthManager
+    @EnvironmentObject var biometricManager: BiometricAuthManager
     @State private var searchText: String = ""
     @State private var sort: LinkSort = .recent
     @State private var showFailedOnly: Bool = false
@@ -328,38 +330,36 @@ struct InboxToolbarModifier: ViewModifier {
                 }
             #elseif os(macOS)
                 .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        HStack {
-                            Menu {
-                                Picker("Sort", selection: $sort) {
-                                    ForEach(LinkSort.allCases, id: \.self) { s in
-                                        Text(s.title).tag(s)
-                                    }
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Menu {
+                            Picker("Sort", selection: $sort) {
+                                ForEach(LinkSort.allCases, id: \.self) { s in
+                                    Text(s.title).tag(s)
                                 }
-                                Toggle(isOn: $showFailedOnly) {
-                                    Label(
-                                        "Show Failed Only", systemImage: "exclamationmark.triangle")
-                                }
-                            } label: {
+                            }
+                            Toggle(isOn: $showFailedOnly) {
                                 Label(
-                                    "Sort & Filter",
-                                    systemImage: "line.3.horizontal.decrease.circle")
+                                    "Show Failed Only", systemImage: "exclamationmark.triangle")
                             }
-                            Button {
-                                Task { await runSync() }
-                            } label: {
-                                if syncing {
-                                    ProgressView().controlSize(.small)
-                                } else {
-                                    Label("Sync", systemImage: "arrow.clockwise")
-                                }
+                        } label: {
+                            Label(
+                                "Sort & Filter",
+                                systemImage: "line.3.horizontal.decrease.circle")
+                        }
+                        Button {
+                            Task { await runSync() }
+                        } label: {
+                            if syncing {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Label("Sync", systemImage: "arrow.clockwise")
                             }
-                            .disabled(syncing)
-                            NavigationLink {
-                                SettingsView()
-                            } label: {
-                                Image(systemName: "gearshape")
-                            }
+                        }
+                        .disabled(syncing)
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gearshape")
                         }
                     }
                 }

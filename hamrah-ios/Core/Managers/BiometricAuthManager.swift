@@ -159,12 +159,12 @@ class BiometricAuthManager: ObservableObject {
                     errorMessage = "Apple Watch unavailable"
             #endif
             #if os(iOS) && compiler(>=6.0)
-            case .companionNotAvailable:
-                if #available(iOS 18.0, *) {
-                    errorMessage = "Companion device unavailable"
-                } else {
-                    errorMessage = "Unknown biometric error"
-                }
+                case .companionNotAvailable:
+                    if #available(iOS 18.0, *) {
+                        errorMessage = "Companion device unavailable"
+                    } else {
+                        errorMessage = "Unknown biometric error"
+                    }
             #endif
             case .biometryDisconnected:
                 errorMessage = "Biometric sensor disconnected"
@@ -223,9 +223,37 @@ class BiometricAuthManager: ObservableObject {
     }
 
     func authenticateForAppAccess() async -> Bool {
-        guard shouldRequireBiometricAuth() else { return true }
-        return await authenticateWithBiometrics(
+        guard shouldRequireBiometricAuth() else {
+            print("✅ Biometric auth not required - skipping")
+            return true
+        }
+
+        print("🔒 Performing biometric authentication for app access")
+        let success = await authenticateWithBiometrics(
             reason: "Unlock Hamrah App with \(biometricTypeString)"
         )
+
+        if success {
+            print("✅ Biometric authentication successful for app access")
+        } else {
+            print("❌ Biometric authentication failed for app access")
+        }
+
+        return success
+    }
+
+    /// Reset error state - useful when retrying authentication
+    func clearError() {
+        errorMessage = nil
+    }
+
+    /// Check if biometric authentication is both enabled and available
+    var isBiometricReadyForUse: Bool {
+        return isBiometricEnabled && isAvailable
+    }
+
+    /// Force a fresh capability check (useful after settings changes)
+    func recheckBiometricCapability() {
+        checkBiometricCapability()
     }
 }
