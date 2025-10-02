@@ -18,25 +18,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             InboxView()
-                .toolbar {
-                    #if os(iOS)
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            NavigationLink {
-                                SettingsView()
-                            } label: {
-                                Image(systemName: "gearshape")
-                            }
-                        }
-                    #else
-                        ToolbarItem(placement: .primaryAction) {
-                            NavigationLink {
-                                SettingsView()
-                            } label: {
-                                Image(systemName: "gearshape")
-                            }
-                        }
-                    #endif
-                }
+
         }
         .onAppear {
             checkBiometricSetupPrompt()

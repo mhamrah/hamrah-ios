@@ -55,6 +55,8 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
