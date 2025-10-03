@@ -185,6 +185,9 @@ struct LinkDetailView: View {
 
     let link: LinkEntity
 
+    // Normalize optional/non-optional tags to a concrete array
+    private var tagsArray: [TagEntity] { (link.tags as [TagEntity]?) ?? [] }
+
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
@@ -207,8 +210,8 @@ struct LinkDetailView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(3)
                 }
-                if !link.tags.isEmpty {
-                    TagCloud(tags: link.tags.map { $0.name })
+                if !tagsArray.isEmpty {
+                    TagCloud(tags: tagsArray.map { $0.name })
                 }
             }
             .padding()

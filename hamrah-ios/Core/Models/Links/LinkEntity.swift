@@ -31,8 +31,8 @@ final class LinkEntity {
     var summaryShort: String?
     var summaryLong: String?
     var lang: String?
-    @Relationship(deleteRule: .nullify, inverse: \TagEntity.links)
-    var tags: [TagEntity] = []
+    @Relationship(deleteRule: .cascade, inverse: \TagEntity.links)
+    var tags: [TagEntity]? = []
 
     // MARK: - Init
     init(
@@ -53,7 +53,7 @@ final class LinkEntity {
         summaryShort: String? = nil,
         summaryLong: String? = nil,
         lang: String? = nil,
-        tags: [TagEntity] = [],
+        tags: [TagEntity]? = [],
 
         serverId: String? = nil
     ) {

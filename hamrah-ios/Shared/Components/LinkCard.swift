@@ -14,6 +14,11 @@ struct LinkCard: View {
 
     @State private var showingContextMenu = false
 
+    // Normalize optional/non-optional tags to a concrete array
+    private var tagsArray: [TagEntity] {
+        (link.tags as [TagEntity]?) ?? []
+    }
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: Theme.Spacing.small) {
@@ -35,7 +40,7 @@ struct LinkCard: View {
                     HStack(spacing: Theme.Spacing.xsmall) {
                         StatusIndicator(status: link.status)
 
-                        if !link.tags.isEmpty {
+                        if !tagsArray.isEmpty {
                             Image(systemName: Theme.Icons.tag)
                                 .font(.caption2)
                                 .foregroundColor(Theme.Colors.primary)
@@ -60,8 +65,8 @@ struct LinkCard: View {
                 }
 
                 // Tags
-                if !link.tags.isEmpty {
-                    TagCloud(tags: link.tags.prefix(3).map { $0.name })
+                if !tagsArray.isEmpty {
+                    TagCloud(tags: tagsArray.prefix(3).map { $0.name })
                 }
 
                 // Footer with metadata
