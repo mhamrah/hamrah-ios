@@ -26,6 +26,7 @@ struct SettingsView: View {
     @State private var credentialToDelete: PasskeyCredential?
     @State private var showAddPasskey = false
     @State private var showBiometricSettings = false
+    @State private var showResetAttestationConfirm = false
 
     // Editable preferences
     @State private var defaultModel: String = "gpt-4o-mini"
@@ -84,6 +85,15 @@ struct SettingsView: View {
             }
         } message: {
             Text("Are you sure you want to remove this passkey? This action cannot be undone.")
+        }
+        .alert("Reset App Attestation?", isPresented: $showResetAttestationConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset", role: .destructive) {
+                AppAttestationManager.shared.resetAttestation()
+                infoMessage = "App Attestation state has been reset. Please restart the app."
+            }
+        } message: {
+            Text("This will delete the current App Attestation key and force the app to create a new one on next launch. This may help resolve authentication issues.")
         }
     }
 
@@ -405,6 +415,13 @@ struct SettingsView: View {
                 copyAPIPromptToClipboard()
             } label: {
                 Label("Copy Settings API Prompt", systemImage: "doc.on.doc")
+            }
+            .buttonStyle(.bordered)
+
+            Button(role: .destructive) {
+                showResetAttestationConfirm = true
+            } label: {
+                Label("Reset App Attestation", systemImage: "shield.slash")
             }
             .buttonStyle(.bordered)
         }

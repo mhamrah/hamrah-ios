@@ -292,6 +292,9 @@ struct InboxToolbarModifier: ViewModifier {
     let syncing: Bool
     let runSync: () async -> Void
 
+    @EnvironmentObject var authManager: NativeAuthManager
+    @EnvironmentObject var biometricManager: BiometricAuthManager
+
     func body(content: Content) -> some View {
         content
             #if os(iOS)
@@ -323,6 +326,8 @@ struct InboxToolbarModifier: ViewModifier {
                         .disabled(syncing)
                         NavigationLink {
                             SettingsView()
+                                .environmentObject(authManager)
+                                .environmentObject(biometricManager)
                         } label: {
                             Image(systemName: "gearshape")
                         }
@@ -358,6 +363,8 @@ struct InboxToolbarModifier: ViewModifier {
                         .disabled(syncing)
                         NavigationLink {
                             SettingsView()
+                                .environmentObject(authManager)
+                                .environmentObject(biometricManager)
                         } label: {
                             Image(systemName: "gearshape")
                         }

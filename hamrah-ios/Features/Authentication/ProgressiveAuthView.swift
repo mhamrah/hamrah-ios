@@ -132,10 +132,20 @@ struct ProgressiveAuthView: View {
             await handleBiometricAuthenticationFlow()
         } else {
             print("✅ Authentication complete - no biometric required")
+            initializeAppAttestation()
         }
 
         await MainActor.run {
             hasPerformedInitialAuth = true
+        }
+    }
+
+    private func initializeAppAttestation() {
+        Task {
+            if let token = authManager.accessToken {
+                print("🔐 Initializing App Attestation if needed...")
+                await SecureAPIService.shared.initializeAttestation(accessToken: token)
+            }
         }
     }
 
@@ -197,6 +207,7 @@ struct ProgressiveAuthView: View {
 
             if success {
                 print("✅ Biometric authentication successful")
+                initializeAppAttestation()
                 hasCheckedBiometric = true
             } else {
                 print("❌ Biometric authentication failed - logging out for security")

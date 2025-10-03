@@ -65,7 +65,9 @@
                 print("🔐 Initializing iOS App Attestation...")
 
                 // Step 1: Generate attestation key if needed
+                print("  -> Step 1: Ensuring attestation key exists...")
                 let keyId = try await ensureAttestationKey()
+                print("  -> Step 1: Attestation key ready.")
 
                 // Step 2: Check if we already have a valid attestation AND verify with server
                 if keychain.retrieveString(for: "hamrah_attestation_completed") == "true" {
@@ -74,7 +76,9 @@
                         print("✅ App Attestation already initialized and verified with server")
                         return
                     } else {
-                        print("⚠️ Attestation flag exists but key not valid on server - re-initializing")
+                        print(
+                            "⚠️ Attestation flag exists but key not valid on server - re-initializing"
+                        )
                         _ = keychain.delete(for: "hamrah_attestation_completed")
                     }
                 }
@@ -83,16 +87,20 @@
                 let challenge = try await getAttestationChallenge(accessToken: accessToken)
 
                 // Step 4: Generate attestation from Apple
+                print("  -> Step 4: Generating attestation from Apple...")
                 let attestationData = try await generateAttestation(
                     keyId: keyId, challenge: challenge.challengeData)
+                print("  -> Step 4: Attestation generated successfully.")
 
                 // Step 5: Submit attestation to server for verification
+                print("  -> Step 5: Submitting attestation to server for verification...")
                 try await submitAttestation(
                     attestation: attestationData,
                     keyId: keyId,
                     challengeId: challenge.challengeId,
                     accessToken: accessToken
                 )
+                print("  -> Step 5: Attestation submitted and verified successfully.")
 
                 // Mark as completed
                 _ = keychain.store("true", for: "hamrah_attestation_completed")
@@ -105,6 +113,7 @@
         private func ensureAttestationKey() async throws -> String {
             // Check if we already have a key ID stored
             if let existingKeyId = keychain.retrieveString(for: keyId) {
+                print("🔑 Found existing App Attestation key: \(existingKeyId.prefix(8))...")
                 return existingKeyId
             }
 
@@ -116,7 +125,9 @@
             }
 
             do {
+                print("  -> Calling DCAppAttestService.generateKey()...")
                 let newKeyId = try await service.generateKey()
+                print("  -> DCAppAttestService.generateKey() succeeded.")
 
                 // Store key ID securely
                 guard keychain.store(newKeyId, for: keyId) else {
@@ -127,15 +138,68 @@
                 return newKeyId
             } catch {
                 print("❌ Failed to generate App Attestation key: \(error)")
+                if let dcError = error as? DCError {
+                    print("❌ DCError code: \(dcError.code.rawValue)")
+                    print("❌ DCError description: \(dcError.localizedDescription)")
+                }
                 throw AttestationError.keyGenerationFailed(error.localizedDescription)
             }
         }
 
         private func generateAttestation(keyId: String, challenge: Data) async throws -> Data {
+            // Validate inputs
+            print("🔍 Validating attestation inputs...")
+            print("  -> Key ID: \(keyId.prefix(8))... (length: \(keyId.count))")
+            print("  -> Challenge data length: \(challenge.count) bytes")
+
+            // Verify the key still exists in keychain
+            guard let storedKeyId = keychain.retrieveString(for: self.keyId), storedKeyId == keyId
+            else {
+                print("❌ Key ID mismatch or missing from keychain")
+                print("  -> Expected: \(keyId.prefix(8))...")
+                print(
+                    "  -> Stored: \(keychain.retrieveString(for: self.keyId)?.prefix(8) ?? "nil")..."
+                )
+                throw AttestationError.keyGenerationFailed("Key ID not found in keychain")
+            }
+
             // Create hash of challenge as required by App Attest
             let challengeHash = sha256(challenge)
+            print(
+                "  -> Challenge hash: \(challengeHash.prefix(8))... (length: \(challengeHash.count) bytes)"
+            )
 
-            return try await service.attestKey(keyId, clientDataHash: challengeHash)
+            do {
+                print("  -> Calling DCAppAttestService.attestKey...")
+                let result = try await service.attestKey(keyId, clientDataHash: challengeHash)
+                print("  -> DCAppAttestService.attestKey succeeded.")
+                return result
+            } catch {
+                print("❌ DCAppAttestService.attestKey failed: \(error)")
+                if let dcError = error as? DCError {
+                    print("❌ DCError code: \(dcError.code.rawValue)")
+                    print("❌ DCError description: \(dcError.localizedDescription)")
+                    print("❌ DCError domain: \((dcError as NSError).domain)")
+
+                    // Handle specific error codes
+                    switch dcError.code {
+                    case DCError.Code.invalidInput:
+                        print("❌ Invalid input provided to attestKey")
+                    case DCError.Code.invalidKey:
+                        print("❌ Invalid key - key may have been invalidated")
+                        print("🔄 Clearing stored key and attestation flag for retry...")
+                        _ = keychain.delete(for: self.keyId)
+                        _ = keychain.delete(for: "hamrah_attestation_completed")
+                        throw AttestationError.keyGenerationFailed(
+                            "Key invalidated - cleared for regeneration")
+                    case DCError.Code.serverUnavailable:
+                        print("❌ Apple's attestation service is unavailable")
+                    default:
+                        print("❌ Unknown DCError code: \(dcError.code.rawValue)")
+                    }
+                }
+                throw error
+            }
         }
 
         private func generateAssertion(keyId: String, challenge: Data) async throws -> Data {
@@ -148,6 +212,7 @@
         private func getAttestationChallenge(accessToken: String) async throws
             -> AttestationChallenge
         {
+            print("  -> Step 3: Getting challenge from server...")
             let url = URL(string: "\(baseURL)/api/app-attestation/challenge")!
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
@@ -179,6 +244,7 @@
                 throw AttestationError.invalidChallenge
             }
 
+            print("  -> Step 3: Challenge received and decoded successfully.")
             return AttestationChallenge(
                 challengeId: challengeResponse.challengeId,
                 challengeData: challengeData
@@ -205,16 +271,29 @@
 
             let (data, response) = try await URLSession.shared.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse else {
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200
+            else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                print(
+                    "❌ Attestation verification HTTP request failed with status code: \(statusCode)"
+                )
+                // Try to decode server error for more details
+                if let verificationResponse = try? JSONDecoder().decode(
+                    AttestationVerificationResponse.self, from: data)
+                {
+                    throw AttestationError.verificationFailed(
+                        verificationResponse.error
+                            ?? "Unknown server error with status code \(statusCode)")
+                }
                 throw AttestationError.verificationRequestFailed
             }
 
             let verificationResponse = try JSONDecoder().decode(
                 AttestationVerificationResponse.self, from: data)
 
-            guard httpResponse.statusCode == 200, verificationResponse.success else {
+            guard verificationResponse.success else {
                 throw AttestationError.verificationFailed(
-                    verificationResponse.error ?? "Unknown error")
+                    verificationResponse.error ?? "Unknown server error")
             }
         }
 
@@ -234,7 +313,8 @@
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200 else {
+                    httpResponse.statusCode == 200
+                else {
                     return false
                 }
 
@@ -272,6 +352,27 @@
         func clearAttestationFlag() {
             _ = keychain.delete(for: "hamrah_attestation_completed")
             print("🔄 App Attestation flag cleared - will retry on next request")
+        }
+
+        /// Completely resets App Attestation state and forces re-initialization
+        func forceReset() {
+            print("🔄 Force resetting App Attestation...")
+            _ = keychain.delete(for: keyId)
+            _ = keychain.delete(for: "hamrah_attestation_completed")
+            print("✅ App Attestation force reset completed - will regenerate key on next request")
+        }
+
+        /// Diagnoses current App Attestation state
+        func diagnoseState() {
+            print("🔍 App Attestation Diagnosis:")
+            print("  -> Service supported: \(service.isSupported)")
+            print("  -> Key stored: \(keychain.retrieveString(for: keyId) != nil)")
+            if let storedKey = keychain.retrieveString(for: keyId) {
+                print("  -> Stored key ID: \(storedKey.prefix(8))...")
+            }
+            print(
+                "  -> Attestation completed flag: \(keychain.retrieveString(for: "hamrah_attestation_completed") ?? "false")"
+            )
         }
     }
 

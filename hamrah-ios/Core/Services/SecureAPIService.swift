@@ -1,4 +1,5 @@
 import Foundation
+import DeviceCheck
 
 class SecureAPIService: ObservableObject {
     static let shared = SecureAPIService()
@@ -107,8 +108,53 @@ class SecureAPIService: ObservableObject {
             print("✅ App Attestation initialized successfully")
         } catch {
             print("⚠️ Failed to initialize App Attestation: \(error)")
+
+            // If we get a DCError code 2 (invalid key), try a force reset and retry once
+            if let dcError = error as? DCError, dcError.code.rawValue == 2 {
+                print("🔄 Detected DCError code 2 - attempting force reset and retry...")
+                attestationManager.forceReset()
+
+                do {
+                    try await attestationManager.initializeAttestation(accessToken: accessToken)
+                    print("✅ App Attestation initialized successfully after reset")
+                } catch {
+                    print("⚠️ App Attestation still failing after reset: \(error)")
+                    print("💡 Continuing with fallback headers - app will still work")
+                }
+            }
             // Continue without attestation - app should still work with fallback headers
         }
+    }
+
+    /// Debug function to diagnose and potentially fix App Attestation issues
+    func debugAppAttestation(accessToken: String) async {
+        print("🔍 === App Attestation Debug Session ===")
+
+        // First, diagnose current state
+        attestationManager.diagnoseState()
+
+        // Try initialization and see what happens
+        print("🔍 Attempting initialization...")
+        do {
+            try await attestationManager.initializeAttestation(accessToken: accessToken)
+            print("✅ Debug: App Attestation initialization succeeded")
+        } catch {
+            print("❌ Debug: App Attestation initialization failed: \(error)")
+
+            // If it fails, try a force reset and retry
+            print("🔄 Debug: Attempting force reset and retry...")
+            attestationManager.forceReset()
+
+            do {
+                try await attestationManager.initializeAttestation(accessToken: accessToken)
+                print("✅ Debug: App Attestation initialization succeeded after reset")
+            } catch {
+                print("❌ Debug: App Attestation still failing after reset: \(error)")
+                print("💡 This may indicate a device/environment issue or rate limiting")
+            }
+        }
+
+        print("🔍 === End Debug Session ===")
     }
 
     // MARK: - Convenience Methods
