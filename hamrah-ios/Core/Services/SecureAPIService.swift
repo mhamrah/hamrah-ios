@@ -19,7 +19,8 @@ class SecureAPIService: ObservableObject {
         body: [String: Any]? = nil,
         accessToken: String?,
         responseType: T.Type,
-        customBaseURL: String? = nil
+        customBaseURL: String? = nil,
+        isRetry: Bool = false
     ) async throws -> T {
         let targetBaseURL = customBaseURL ?? baseURL
         let url = URL(string: "\(targetBaseURL)\(endpoint)")!
@@ -56,8 +57,33 @@ class SecureAPIService: ObservableObject {
             throw APIError.invalidResponse
         }
 
-        // Handle authentication errors
+        // Handle authentication errors with attestation retry
         if httpResponse.statusCode == 401 {
+            // On 401, attempt to re-initialize attestation once
+            if !isRetry, let token = accessToken {
+                print("⚠️ 401 Unauthorized - Attempting to re-initialize attestation")
+
+                // Clear attestation flag and retry initialization
+                attestationManager.clearAttestationFlag()
+
+                do {
+                    try await attestationManager.initializeAttestation(accessToken: token)
+                    print("✅ Attestation re-initialized, retrying request")
+
+                    // Retry the request once
+                    return try await makeSecureRequest(
+                        endpoint: endpoint,
+                        method: method,
+                        body: body,
+                        accessToken: accessToken,
+                        responseType: responseType,
+                        customBaseURL: customBaseURL,
+                        isRetry: true  // Prevent infinite retry loop
+                    )
+                } catch {
+                    print("❌ Attestation re-initialization failed: \(error)")
+                }
+            }
             throw APIError.unauthorized
         }
 
@@ -161,7 +187,8 @@ class SecureAPIService: ObservableObject {
         endpoint: String,
         ifNoneMatchETag: String? = nil,
         accessToken: String?,
-        customBaseURL: String? = nil
+        customBaseURL: String? = nil,
+        isRetry: Bool = false
     ) async throws -> HTTPURLResponse {
         let targetBaseURL = customBaseURL ?? baseURL
         let url = URL(string: "\(targetBaseURL)\(endpoint)")!
@@ -192,9 +219,28 @@ class SecureAPIService: ObservableObject {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+
         if httpResponse.statusCode == 401 {
+            if !isRetry, let token = accessToken {
+                print("⚠️ 401 Unauthorized - Attempting to re-initialize attestation")
+                attestationManager.clearAttestationFlag()
+                do {
+                    try await attestationManager.initializeAttestation(accessToken: token)
+                    print("✅ Attestation re-initialized, retrying request")
+                    return try await headRaw(
+                        endpoint: endpoint,
+                        ifNoneMatchETag: ifNoneMatchETag,
+                        accessToken: accessToken,
+                        customBaseURL: customBaseURL,
+                        isRetry: true
+                    )
+                } catch {
+                    print("❌ Attestation re-initialization failed: \(error)")
+                }
+            }
             throw APIError.unauthorized
         }
+
         guard httpResponse.statusCode == 200 || httpResponse.statusCode == 304 else {
             throw APIError.serverError(httpResponse.statusCode, "HEAD request failed")
         }
@@ -206,7 +252,8 @@ class SecureAPIService: ObservableObject {
     func downloadRaw(
         endpoint: String,
         accessToken: String?,
-        customBaseURL: String? = nil
+        customBaseURL: String? = nil,
+        isRetry: Bool = false
     ) async throws -> (URL, HTTPURLResponse) {
         let targetBaseURL = customBaseURL ?? baseURL
         let url = URL(string: "\(targetBaseURL)\(endpoint)")!
@@ -233,9 +280,27 @@ class SecureAPIService: ObservableObject {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+
         if httpResponse.statusCode == 401 {
+            if !isRetry, let token = accessToken {
+                print("⚠️ 401 Unauthorized - Attempting to re-initialize attestation")
+                attestationManager.clearAttestationFlag()
+                do {
+                    try await attestationManager.initializeAttestation(accessToken: token)
+                    print("✅ Attestation re-initialized, retrying request")
+                    return try await downloadRaw(
+                        endpoint: endpoint,
+                        accessToken: accessToken,
+                        customBaseURL: customBaseURL,
+                        isRetry: true
+                    )
+                } catch {
+                    print("❌ Attestation re-initialization failed: \(error)")
+                }
+            }
             throw APIError.unauthorized
         }
+
         guard httpResponse.statusCode == 200 else {
             throw APIError.serverError(httpResponse.statusCode, "Download request failed")
         }

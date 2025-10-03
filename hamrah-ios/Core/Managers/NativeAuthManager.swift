@@ -500,9 +500,8 @@ class NativeAuthManager: NSObject, ObservableObject {
         self.setLastUsedEmail(user.email)
         self.storeAuthState()
 
-        Task {
-            await secureAPI.initializeAttestation(accessToken: token)
-        }
+        // Initialize App Attestation (blocks on first install, skips if already initialized)
+        await secureAPI.initializeAttestation(accessToken: token)
 
         print("✅ Passkey authentication successful")
     }
@@ -598,11 +597,9 @@ class NativeAuthManager: NSObject, ObservableObject {
 
             self.storeAuthState()
 
-            // Initialize App Attestation in background
+            // Initialize App Attestation (blocks on first install, skips if already initialized)
             if let token = self.accessToken {
-                Task {
-                    await secureAPI.initializeAttestation(accessToken: token)
-                }
+                await secureAPI.initializeAttestation(accessToken: token)
             }
 
             print("✅ Backend authentication successful - User: \(user.email)")

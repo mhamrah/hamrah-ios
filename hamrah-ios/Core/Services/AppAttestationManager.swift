@@ -67,10 +67,16 @@
                 // Step 1: Generate attestation key if needed
                 let keyId = try await ensureAttestationKey()
 
-                // Step 2: Check if we already have a valid attestation
+                // Step 2: Check if we already have a valid attestation AND verify with server
                 if keychain.retrieveString(for: "hamrah_attestation_completed") == "true" {
-                    print("✅ App Attestation already initialized")
-                    return
+                    // Verify the key is still valid on the server
+                    if await verifyKeyWithServer(keyId: keyId, accessToken: accessToken) {
+                        print("✅ App Attestation already initialized and verified with server")
+                        return
+                    } else {
+                        print("⚠️ Attestation flag exists but key not valid on server - re-initializing")
+                        _ = keychain.delete(for: "hamrah_attestation_completed")
+                    }
                 }
 
                 // Step 3: Get challenge from server
@@ -212,6 +218,35 @@
             }
         }
 
+        private func verifyKeyWithServer(keyId: String, accessToken: String) async -> Bool {
+            let url = URL(string: "\(baseURL)/api/app-attestation/verify-key")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+            let body = ["keyId": keyId]
+            guard let httpBody = try? JSONEncoder().encode(body) else {
+                return false
+            }
+            request.httpBody = httpBody
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200 else {
+                    return false
+                }
+
+                let verifyResponse = try JSONDecoder().decode(
+                    KeyVerificationResponse.self, from: data)
+                return verifyResponse.valid
+            } catch {
+                print("⚠️ Key verification failed: \(error)")
+                return false
+            }
+        }
+
         private func sha256(_ data: Data) -> Data {
             var hash = Data(count: Int(CC_SHA256_DIGEST_LENGTH))
             hash.withUnsafeMutableBytes { bytes in
@@ -224,12 +259,19 @@
             return hash
         }
 
-        // MARK: - Reset (for testing)
+        // MARK: - Public Reset Methods
 
+        /// Resets attestation state - forces re-initialization on next login
         func resetAttestation() {
             _ = keychain.delete(for: keyId)
             _ = keychain.delete(for: "hamrah_attestation_completed")
             print("🔄 App Attestation reset completed")
+        }
+
+        /// Clears attestation completion flag - allows retry without generating new key
+        func clearAttestationFlag() {
+            _ = keychain.delete(for: "hamrah_attestation_completed")
+            print("🔄 App Attestation flag cleared - will retry on next request")
         }
     }
 
@@ -250,6 +292,10 @@
     struct AttestationVerificationResponse: Codable {
         let success: Bool
         let error: String?
+    }
+
+    struct KeyVerificationResponse: Codable {
+        let valid: Bool
     }
 
     // MARK: - Errors

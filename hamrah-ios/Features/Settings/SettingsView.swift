@@ -48,6 +48,7 @@ struct SettingsView: View {
     var body: some View {
         Form {
             userInfoSection
+            authProvidersSection
             passkeysSection
             biometricSection
             serverSyncSection
@@ -98,6 +99,59 @@ struct SettingsView: View {
                 LabeledContent("Member Since", value: formatDate(user.createdAt ?? ""))
             } else {
                 Text("Not logged in.")
+            }
+        }
+    }
+
+    private var authProvidersSection: some View {
+        Section("Authentication Providers") {
+            if let user = authManager.currentUser {
+                // Show current auth method
+                HStack {
+                    Image(systemName: authProviderIcon(user.authMethod))
+                        .foregroundColor(authProviderColor(user.authMethod))
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Current: \(user.authMethod.capitalized)")
+                            .font(.subheadline)
+                        Text("Signed in with \(user.authMethod)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Add additional auth providers
+                if user.authMethod != "google" {
+                    Button(action: {
+                        Task { await authManager.signInWithGoogle() }
+                    }) {
+                        HStack {
+                            Image(systemName: "g.circle.fill")
+                                .foregroundColor(.red)
+                                .frame(width: 24)
+                            Text("Add Google Sign-In")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+
+                if user.authMethod != "apple" {
+                    Button(action: {
+                        Task { await authManager.signInWithApple() }
+                    }) {
+                        HStack {
+                            Image(systemName: "applelogo")
+                                .foregroundColor(.primary)
+                                .frame(width: 24)
+                            Text("Add Apple Sign-In")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+            } else {
+                Text("Sign in to manage authentication providers.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -518,6 +572,24 @@ struct SettingsView: View {
             return displayFormatter.string(from: date)
         }
         return dateString
+    }
+
+    private func authProviderIcon(_ method: String) -> String {
+        switch method.lowercased() {
+        case "google": return "g.circle.fill"
+        case "apple": return "applelogo"
+        case "passkey": return "key.fill"
+        default: return "person.circle.fill"
+        }
+    }
+
+    private func authProviderColor(_ method: String) -> Color {
+        switch method.lowercased() {
+        case "google": return .red
+        case "apple": return .primary
+        case "passkey": return .green
+        default: return .blue
+        }
     }
 
     private func loadPasskeys() {

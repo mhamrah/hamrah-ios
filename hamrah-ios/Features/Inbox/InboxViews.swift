@@ -311,11 +311,6 @@ struct InboxToolbarModifier: ViewModifier {
                         }
                     }
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        NavigationLink {
-                            SettingsView()
-                        } label: {
-                            Image(systemName: "gearshape")
-                        }
                         Button {
                             Task { await runSync() }
                         } label: {
@@ -326,6 +321,11 @@ struct InboxToolbarModifier: ViewModifier {
                             }
                         }
                         .disabled(syncing)
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
                     }
                 }
             #elseif os(macOS)
