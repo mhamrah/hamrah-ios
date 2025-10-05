@@ -142,8 +142,7 @@ final class InboxViewModel: BaseViewModel {
 #if DEBUG
     extension InboxViewModel {
         static func preview() -> InboxViewModel {
-            let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try! ModelContainer(for: LinkEntity.self, configurations: config)
+            let container = AppModelSchema.makeInMemoryContainer()
             let context = ModelContext(container)
 
             // Add some sample data

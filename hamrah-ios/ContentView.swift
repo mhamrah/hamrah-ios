@@ -73,7 +73,7 @@ struct ContentView: View {
     NavigationStack {
         InboxView()
     }
-    .modelContainer(for: LinkEntity.self, inMemory: true)
+    .modelContainer(AppModelSchema.makeInMemoryContainer())
     .environmentObject(NativeAuthManager())
     .environmentObject(BiometricAuthManager())
 }

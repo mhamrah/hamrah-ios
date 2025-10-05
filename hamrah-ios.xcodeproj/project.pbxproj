@@ -14,7 +14,6 @@
 		5FEXTSRCFILE0003 /* LinkEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0003 /* LinkEntity.swift */; };
 		5FEXTSRCFILE0004 /* TagEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0004 /* TagEntity.swift */; };
 		5FEXTSRCFILE0005 /* SyncCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0005 /* SyncCursor.swift */; };
-		5FEXTSRCFILE0006 /* UserPrefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEXTSRCREF0006 /* UserPrefs.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +69,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3A9129772E91651D00B83302 /* Exceptions for "hamrah-ios" folder in "HamrahShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Core/Data/Schema/AppModelSchema.swift,
+				Core/Models/Links/UserPrefs.swift,
+				Item.swift,
+			);
+			target = 5FEXTTGT0001 /* HamrahShare */;
+		};
 		3AC7BF782E4900DF00D7AA36 /* Exceptions for "hamrah-ios" folder in "hamrah-ios" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -84,6 +92,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				3AC7BF782E4900DF00D7AA36 /* Exceptions for "hamrah-ios" folder in "hamrah-ios" target */,
+				3A9129772E91651D00B83302 /* Exceptions for "hamrah-ios" folder in "HamrahShare" target */,
 			);
 			path = "hamrah-ios";
 			sourceTree = "<group>";
@@ -376,7 +385,6 @@
 				5FEXTSRCFILE0003 /* LinkEntity.swift in Sources */,
 				5FEXTSRCFILE0004 /* TagEntity.swift in Sources */,
 				5FEXTSRCFILE0005 /* SyncCursor.swift in Sources */,
-				5FEXTSRCFILE0006 /* UserPrefs.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

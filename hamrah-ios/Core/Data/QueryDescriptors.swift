@@ -90,7 +90,7 @@ struct LinkQueryDescriptors {
         limit: Int = 50
     ) -> FetchDescriptor<LinkEntity> {
         let predicate = #Predicate<LinkEntity> {
-            ($0.tags?.contains { $0.name == tagName }) == true
+            $0.tags.contains { $0.name == tagName }
         }
 
         var descriptor = FetchDescriptor<LinkEntity>(predicate: predicate)
@@ -163,7 +163,7 @@ struct LinkQueryDescriptors {
         if !tags.isEmpty {
             let tagsPredicate = #Predicate<LinkEntity> { link in
                 tags.allSatisfy { tagName in
-                    (link.tags?.contains { $0.name == tagName }) == true
+                    link.tags.contains { $0.name == tagName }
                 }
             }
             predicates.append(tagsPredicate)

@@ -10,19 +10,23 @@ import SwiftUI
 
 struct OptimizedInboxView: View {
     @Environment(\.modelContext) private var modelContext
+
+    var body: some View {
+        InnerOptimizedInboxView(modelContext: modelContext)
+    }
+}
+
+private struct InnerOptimizedInboxView: View {
+    let modelContext: ModelContext
     @StateObject private var viewModel: InboxViewModel
     @Query private var links: [LinkEntity]
 
     @State private var showingFilterSheet = false
     @State private var selectedLink: LinkEntity?
 
-    init() {
-        // This will be properly initialized with dependency injection
-        let viewModel = InboxViewModel(
-            modelContext: ModelContext(try! ModelContainer(for: LinkEntity.self)))
-        self._viewModel = StateObject(wrappedValue: viewModel)
-
-        // Initialize with a basic descriptor - will be updated by the view model
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        self._viewModel = StateObject(wrappedValue: InboxViewModel(modelContext: modelContext))
         self._links = Query(LinkQueryDescriptors.recent())
     }
 
@@ -210,41 +214,41 @@ struct OptimizedInboxView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         #if os(iOS)
-        ToolbarItemGroup(placement: .navigationBarLeading) {
-            Menu {
-                sortPicker
-                Divider()
-                filterOptions
-            } label: {
-                Label("Sort & Filter", systemImage: Theme.Icons.filter)
+            ToolbarItemGroup(placement: .navigationBarLeading) {
+                Menu {
+                    sortPicker
+                    Divider()
+                    filterOptions
+                } label: {
+                    Label("Sort & Filter", systemImage: Theme.Icons.filter)
+                }
             }
-        }
 
-        ToolbarItemGroup(placement: .navigationBarTrailing) {
-            Button {
-                showingFilterSheet = true
-            } label: {
-                Image(systemName: "slider.horizontal.3")
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button {
+                    showingFilterSheet = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
             }
-        }
         #elseif os(macOS)
-        ToolbarItemGroup(placement: .primaryAction) {
-            Menu {
-                sortPicker
-                Divider()
-                filterOptions
-            } label: {
-                Label("Sort & Filter", systemImage: Theme.Icons.filter)
+            ToolbarItemGroup(placement: .primaryAction) {
+                Menu {
+                    sortPicker
+                    Divider()
+                    filterOptions
+                } label: {
+                    Label("Sort & Filter", systemImage: Theme.Icons.filter)
+                }
             }
-        }
 
-        ToolbarItemGroup(placement: .secondaryAction) {
-            Button {
-                showingFilterSheet = true
-            } label: {
-                Image(systemName: "slider.horizontal.3")
+            ToolbarItemGroup(placement: .secondaryAction) {
+                Button {
+                    showingFilterSheet = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
             }
-        }
         #endif
     }
 
@@ -350,21 +354,21 @@ struct FilterSheet: View {
             }
             .navigationTitle("Filters")
             #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
+                .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 #if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") {
+                            dismiss()
+                        }
                     }
-                }
                 #elseif os(macOS)
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Done") {
-                        dismiss()
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("Done") {
+                            dismiss()
+                        }
                     }
-                }
                 #endif
             }
         }

@@ -6,28 +6,17 @@ import SwiftData
 /// the same database.
 final class ShareExtensionDataStack {
 
-    /// App Group identifier shared by the main app and the share extension.
-    static let appGroupId = "group.app.hamrah.ios"
+    /// Uses AppModelSchema for a unified schema shared with the main app.
 
     /// A shared ModelContainer configured to store models in the App Group.
     /// This allows the share extension to write queued links while offline and
     /// the main app to read/sync them when available.
     static let shared: ModelContainer = {
-        do {
-            let config = ModelConfiguration(
-                isStoredInMemoryOnly: false, groupContainer: .identifier(appGroupId))
-            return try ModelContainer(
-                for: LinkEntity.self,
-
-                TagEntity.self,
-                SyncCursor.self,
-                UserPrefs.self,
-                configurations: config
-            )
-        } catch {
-            fatalError(
-                "Failed to initialize SwiftData ModelContainer for Share Extension: \(error)")
-        }
+        #if DEBUG
+            AppModelSchema.makeSharedContainerWithRecovery()
+        #else
+            (try? AppModelSchema.makeSharedContainer()) ?? AppModelSchema.makeInMemoryContainer()
+        #endif
     }()
 
     /// Convenience accessor for the main ModelContext.

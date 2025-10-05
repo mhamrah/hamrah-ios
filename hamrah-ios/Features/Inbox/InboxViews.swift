@@ -186,7 +186,7 @@ struct LinkDetailView: View {
     let link: LinkEntity
 
     // Normalize optional/non-optional tags to a concrete array
-    private var tagsArray: [TagEntity] { (link.tags as [TagEntity]?) ?? [] }
+    private var tagsArray: [TagEntity] { link.tags }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -329,8 +329,8 @@ struct InboxToolbarModifier: ViewModifier {
                         .disabled(syncing)
                         NavigationLink {
                             SettingsView()
-                                .environmentObject(authManager)
-                                .environmentObject(biometricManager)
+                            .environmentObject(authManager)
+                            .environmentObject(biometricManager)
                         } label: {
                             Image(systemName: "gearshape")
                         }
@@ -366,8 +366,8 @@ struct InboxToolbarModifier: ViewModifier {
                         .disabled(syncing)
                         NavigationLink {
                             SettingsView()
-                                .environmentObject(authManager)
-                                .environmentObject(biometricManager)
+                            .environmentObject(authManager)
+                            .environmentObject(biometricManager)
                         } label: {
                             Image(systemName: "gearshape")
                         }
@@ -387,12 +387,7 @@ struct InboxToolbarModifier: ViewModifier {
         }
 
         static var previewContainer: ModelContainer = {
-            let schema = Schema([
-                LinkEntity.self, TagEntity.self, SyncCursor.self,
-                UserPrefs.self,
-            ])
-            let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try! ModelContainer(for: schema, configurations: config)
+            let container = AppModelSchema.makeInMemoryContainer()
 
             let ctx = ModelContext(container)
 

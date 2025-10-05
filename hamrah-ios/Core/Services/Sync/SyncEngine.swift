@@ -26,24 +26,18 @@ final class SyncEngine: ObservableObject {
 
     /// Default initializer that creates/uses a ModelContainer stored in the App Group.
     convenience init() {
-        do {
-            let config = ModelConfiguration(groupContainer: .identifier("group.app.hamrah.ios"))
-            let container = try ModelContainer(
-                for:
-                    LinkEntity.self,
-
-                TagEntity.self,
-                SyncCursor.self,
-                UserPrefs.self,
-                configurations: config
-            )
-            self.init(
-                api: SecureAPILinkClient(),
-                modelContainer: container
-            )
-        } catch {
-            fatalError("Failed to initialize SyncEngine ModelContainer: \(error)")
-        }
+        // Use unified AppModelSchema to guarantee schema consistency across targets
+        #if DEBUG
+            let container = AppModelSchema.makeSharedContainerWithRecovery()
+        #else
+            let container =
+                (try? AppModelSchema.makeSharedContainer())
+                ?? AppModelSchema.makeInMemoryContainer()
+        #endif
+        self.init(
+            api: SecureAPILinkClient(),
+            modelContainer: container
+        )
     }
 
     /// Designated initializer supporting dependency injection for testing.
@@ -121,12 +115,10 @@ final class SyncEngine: ObservableObject {
     private func payload(for link: LinkEntity, prefs: UserPrefs?) -> OutboundLinkPayload {
         OutboundLinkPayload(
             clientId: link.localId.uuidString,
-            originalUrl: link.originalUrl.absoluteString,
+            url: link.originalUrl.absoluteString,
             sharedText: link.sharedText,
             sourceApp: link.sourceApp,
-            sharedAtISO8601: iso8601(link.sharedAt),
-            metadata: .init(title: link.title),
-            preferredModels: prefs?.preferredModels ?? []
+            sharedAtISO8601: iso8601(link.sharedAt)
         )
     }
 
@@ -311,27 +303,21 @@ protocol LinkAPI {
 
 // MARK: - LinkAPI DTOs
 
+/// Outbound payload for creating a link (strict schema, snake_case keys):
+/// { "url": "...", "client_id": "...", "source_app": "...?", "shared_text": "...?", "shared_at": "...?" }
 struct OutboundLinkPayload: Encodable {
     let clientId: String
-    let originalUrl: String
+    let url: String
     let sharedText: String?
     let sourceApp: String?
     let sharedAtISO8601: String
-    let metadata: Metadata
-    let preferredModels: [String]
-
-    struct Metadata: Encodable {
-        let title: String?
-    }
 
     enum CodingKeys: String, CodingKey {
         case clientId = "client_id"
-        case originalUrl = "original_url"
+        case url
         case sharedText = "shared_text"
         case sourceApp = "source_app"
         case sharedAtISO8601 = "shared_at"
-        case metadata
-        case preferredModels = "preferred_models"
     }
 }
 
@@ -393,9 +379,10 @@ struct ServerLink: Codable {
 /// Endpoints follow the backend contract; canonicalization is performed on the server.
 final class SecureAPILinkClient: LinkAPI {
 
+    /// POST /v1/links - strict payload (snake_case): url, client_id, source_app?, shared_text?, shared_at? -> returns { id, canonical_url }
     func postLink(payload: OutboundLinkPayload, token: String?) async throws -> PostLinkResponse {
         let body: [String: Any] = try encodeToJSONObject(payload)
-        // Note: endpoint path updated to remove /api prefix
+
         return try await SecureAPIService.shared.post(
             endpoint: "/v1/links",
             body: body,

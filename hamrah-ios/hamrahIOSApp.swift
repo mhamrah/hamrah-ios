@@ -8,28 +8,21 @@
 import SwiftData
 import SwiftUI
 
+// Using AppModelSchema for unified schema across targets
+
 #if os(iOS)
     import BackgroundTasks
 #endif
 
 @main
 struct hamrahIOSApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     var sharedModelContainer: ModelContainer = {
-        do {
-            let config = ModelConfiguration(groupContainer: .identifier("group.app.hamrah.ios"))
-            return try ModelContainer(
-                for:
-                    Item.self,
-                LinkEntity.self,
-
-                TagEntity.self,
-                SyncCursor.self,
-                UserPrefs.self,
-                configurations: config
-            )
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
+        #if DEBUG
+            AppModelSchema.makeSharedContainerWithRecovery()
+        #else
+            (try? AppModelSchema.makeSharedContainer()) ?? AppModelSchema.makeInMemoryContainer()
+        #endif
     }()
 
     // Background sync registration - iOS only
@@ -67,8 +60,15 @@ struct hamrahIOSApp: App {
                 .onOpenURL { url in
                     // Handle deep link URLs (OAuth callback)
                     print("Received URL: \(url)")
+                    _ = DeepLinkRouter.handle(url)
+                    SyncEngine().triggerSync(reason: "open_url")
                 }
         }
         .modelContainer(sharedModelContainer)
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                SyncEngine().triggerSync(reason: "app_active")
+            }
+        }
     }
 }

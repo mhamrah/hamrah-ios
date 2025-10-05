@@ -16,7 +16,7 @@ struct LinkCard: View {
 
     // Normalize optional/non-optional tags to a concrete array
     private var tagsArray: [TagEntity] {
-        (link.tags as [TagEntity]?) ?? []
+        link.tags
     }
 
     var body: some View {
