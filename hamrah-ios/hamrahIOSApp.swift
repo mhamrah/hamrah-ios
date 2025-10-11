@@ -13,6 +13,9 @@ import SwiftUI
 #if os(iOS)
     import BackgroundTasks
 #endif
+#if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
+    import GoogleSignIn
+#endif
 
 @main
 struct hamrahIOSApp: App {
@@ -28,21 +31,31 @@ struct hamrahIOSApp: App {
     // Background sync registration - iOS only
     init() {
         #if os(iOS)
-            BGTaskScheduler.shared.register(
-                forTaskWithIdentifier: "app.hamrah.ios.sync", using: nil
-            ) {
-                task in
-                Task {
-                    SyncEngine().triggerBackgroundSync()
-                    task.setTaskCompleted(success: true)
+            #if !targetEnvironment(simulator)
+                BGTaskScheduler.shared.register(
+                    forTaskWithIdentifier: "app.hamrah.ios.sync", using: nil
+                ) {
+                    task in
+                    Task {
+                        SyncEngine().triggerBackgroundSync()
+                        task.setTaskCompleted(success: true)
+                    }
                 }
-            }
-            scheduleBackgroundSync()
+                print("🗓️ Scheduling background sync task on device...")
+                scheduleBackgroundSync()
+            #else
+                print("ℹ️ Skipping BGTask registration on Simulator.")
+            #endif
         #endif
     }
 
     #if os(iOS)
         private func scheduleBackgroundSync() {
+            #if targetEnvironment(simulator)
+                print("ℹ️ Skipping BGProcessingTask scheduling on Simulator.")
+                return
+            #endif
+            print("📝 Preparing BGProcessingTask request for 'app.hamrah.ios.sync'")
             let request = BGProcessingTaskRequest(identifier: "app.hamrah.ios.sync")
             request.requiresNetworkConnectivity = true
             request.requiresExternalPower = false
@@ -60,12 +73,24 @@ struct hamrahIOSApp: App {
                 .onOpenURL { url in
                     // Handle deep link URLs (OAuth callback)
                     print("Received URL: \(url)")
-                    _ = DeepLinkRouter.handle(url)
+                    #if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
+                        print("🔎 Attempting Google Sign-In URL handling...")
+                        if GIDSignIn.sharedInstance.handle(url) {
+                            print("✅ Handled Google Sign-In URL")
+                            return
+                        } else {
+                            print(
+                                "↪️ Google Sign-In did not handle URL, falling back to deep link router"
+                            )
+                        }
+                    #endif
+                    let routed = DeepLinkRouter.handle(url)
+                    print("🔗 DeepLinkRouter handled: \(routed)")
                     SyncEngine().triggerSync(reason: "open_url")
                 }
         }
         .modelContainer(sharedModelContainer)
-        .onChange(of: scenePhase) { newPhase in
+        .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 SyncEngine().triggerSync(reason: "app_active")
             }

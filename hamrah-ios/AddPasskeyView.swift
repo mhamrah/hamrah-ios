@@ -171,7 +171,7 @@ struct AddPasskeyView: View {
             body: body,
             accessToken: accessToken,
             responseType: WebAuthnBeginRegistrationResponse.self,
-            customBaseURL: APIConfiguration.shared.webAppBaseURL
+            customBaseURL: APIConfiguration.shared.baseURL
         )
     }
 
@@ -229,7 +229,7 @@ struct AddPasskeyView: View {
             body: body,
             accessToken: accessToken,
             responseType: APIResponse.self,
-            customBaseURL: APIConfiguration.shared.webAppBaseURL
+            customBaseURL: APIConfiguration.shared.baseURL
         )
     }
 }

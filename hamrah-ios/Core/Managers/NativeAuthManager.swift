@@ -79,9 +79,6 @@ class NativeAuthManager: NSObject, ObservableObject {
         APIConfiguration.shared.baseURL
     }
 
-    var webAppBaseURL: String {
-        APIConfiguration.shared.webAppBaseURL
-    }
     @Published var accessToken: String?
 
     // Secure API service with App Attestation
@@ -237,15 +234,28 @@ class NativeAuthManager: NSObject, ObservableObject {
 
     private func configureGoogleSignIn() {
         #if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
-            guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+            // Prefer GoogleService-Info.plist, but fall back to Info.plist (GIDClientID)
+            var clientId: String? = nil
+            if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
                 let plist = NSDictionary(contentsOfFile: path),
-                let clientId = plist["CLIENT_ID"] as? String
-            else {
-                print("⚠️ GoogleService-Info.plist not found or CLIENT_ID missing")
+                let id = plist["CLIENT_ID"] as? String,
+                !id.isEmpty
+            {
+                clientId = id
+                print("✅ Google Sign-In configured from GoogleService-Info.plist")
+            } else if let id = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
+                !id.isEmpty
+            {
+                clientId = id
+                print("✅ Google Sign-In configured from Info.plist GIDClientID")
+            } else {
+                print("⚠️ GoogleService-Info.plist not found and GIDClientID missing in Info.plist")
                 return
             }
-            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientId)
-            print("✅ Google Sign-In configured (HAS_GOOGLE_SIGNIN)")
+            if let clientId = clientId {
+                GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientId)
+                print("✅ Google Sign-In configured (HAS_GOOGLE_SIGNIN)")
+            }
         #else
             // Build without Google Sign-In SDK or flag: operate in degraded mode
             print(
@@ -261,16 +271,28 @@ class NativeAuthManager: NSObject, ObservableObject {
             do {
                 print("🔍 Starting Google Sign-In...")
                 #if os(iOS) || targetEnvironment(macCatalyst)
+                    // Ensure app is active before presenting Google Sign-In
+                    if UIApplication.shared.applicationState != .active {
+                        print("⏳ Waiting for app to become active before starting Google Sign-In")
+                        while UIApplication.shared.applicationState != .active {
+                            try await Task.sleep(nanoseconds: 100_000_000)
+                        }
+                    }
                     guard
                         let windowScene = UIApplication.shared.connectedScenes.first
                             as? UIWindowScene,
-                        let presentingViewController = windowScene.windows.first?.rootViewController
+                        let window = windowScene.windows.first(where: { $0.isKeyWindow }),
+                        var presentingViewController = window.rootViewController
                     else {
                         throw NSError(
                             domain: "GoogleSignIn",
                             code: -1,
                             userInfo: [NSLocalizedDescriptionKey: "No presenting view controller"]
                         )
+                    }
+                    // Traverse to the top-most presented view controller
+                    while let presented = presentingViewController.presentedViewController {
+                        presentingViewController = presented
                     }
                     let result = try await GIDSignIn.sharedInstance.signIn(
                         withPresenting: presentingViewController)
@@ -415,7 +437,7 @@ class NativeAuthManager: NSObject, ObservableObject {
             body: body,
             accessToken: nil,  // No auth needed for discoverable begin
             responseType: WebAuthnBeginResponse.self,
-            customBaseURL: webAppBaseURL
+            customBaseURL: baseURL
         )
     }
 
@@ -485,7 +507,7 @@ class NativeAuthManager: NSObject, ObservableObject {
             body: body,
             accessToken: nil,
             responseType: PasskeyAuthResponse.self,
-            customBaseURL: webAppBaseURL
+            customBaseURL: baseURL
         )
 
         guard result.success, let user = result.user, let token = result.session_token else {

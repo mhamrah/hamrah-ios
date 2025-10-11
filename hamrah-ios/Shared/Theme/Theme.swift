@@ -12,14 +12,17 @@ struct Theme {
     // MARK: - Colors
 
     struct Colors {
-        // Primary colors
-        static let primary = Color.accentColor
-        static let secondary = Color.secondary
-        #if os(iOS)
-            static let tertiary = Color(.tertiaryLabel)
-        #elseif os(macOS)
-            static let tertiary = Color(NSColor.tertiaryLabelColor)
-        #endif
+        // Brand color palette
+        static let hunyadiYellow = Color(hex: "f6bd60")
+        static let linen = Color(hex: "f7ede2")
+        static let teaRose = Color(hex: "f5cac3")
+        static let cambridgeBlue = Color(hex: "84a59d")
+        static let lightCoral = Color(hex: "f28482")
+
+        // Primary colors (mapped to brand palette)
+        static let primary = hunyadiYellow
+        static let secondary = cambridgeBlue
+        static let tertiary = teaRose
 
         // Background colors
         #if os(iOS)
@@ -41,11 +44,11 @@ struct Theme {
             static let surfaceBackground = Color(NSColor.controlBackgroundColor)
         #endif
 
-        // Status colors
-        static let success = Color.green
-        static let warning = Color.orange
-        static let error = Color.red
-        static let info = Color.blue
+        // Status colors (using brand palette)
+        static let success = cambridgeBlue
+        static let warning = hunyadiYellow
+        static let error = lightCoral
+        static let info = cambridgeBlue
 
         // Link status colors
         static let linkQueued = Color.yellow
@@ -219,6 +222,38 @@ struct ShadowStyle {
     let radius: CGFloat
     let x: CGFloat
     let y: CGFloat
+}
+
+// MARK: - Color Extension for Hex Support
+
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a: UInt64
+        let r: UInt64
+        let g: UInt64
+        let b: UInt64
+        switch hex.count {
+        case 3:  // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6:  // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8:  // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
 }
 
 // MARK: - View Extensions for Theme
