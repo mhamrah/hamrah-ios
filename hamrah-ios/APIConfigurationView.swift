@@ -56,6 +56,14 @@ struct APIConfigurationView: View {
                     }
                 }
 
+                #if targetEnvironment(simulator)
+                    Section(header: Text("Simulator Settings")) {
+                        Toggle(
+                            "Use localhost:8080 on Simulator",
+                            isOn: $configuration.simulatorLocalhostEnabled)
+                    }
+                #endif
+
                 Section(header: Text("Current Configuration")) {
                     HStack {
                         Text("API Base URL")

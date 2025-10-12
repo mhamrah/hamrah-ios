@@ -92,24 +92,19 @@ struct NativeLoginView: View {
 
                 // Google Sign-In (may be stubbed if SDK absent)
                 // Google Sign-In (only when Google SDK / flag is available)
-                #if HAS_GOOGLE_SIGNIN
-                    Button(action: {
-                        Task {
-                            await authManager.signInWithGoogle()
-                        }
-                    }) {
-                        authButtonLabel(
-                            symbol: "globe",
-                            title: "Continue with Google",
-                            background: Color.blue
-                        )
+                Button(action: {
+                    Task {
+                        await authManager.signInWithGoogle()
                     }
-                    .disabled(authManager.isLoading)
-                    .accessibilityIdentifier("googleSignInButton")
-                #else
-                    // Hidden when Google Sign-In not compiled in
-                    EmptyView()
-                #endif
+                }) {
+                    authButtonLabel(
+                        symbol: "globe",
+                        title: "Continue with Google",
+                        background: Color.blue
+                    )
+                }
+                .disabled(authManager.isLoading)
+                .accessibilityIdentifier("googleSignInButton")
 
                 // Passkey Sign-In
                 Button(action: { showingEmailInput = true }) {

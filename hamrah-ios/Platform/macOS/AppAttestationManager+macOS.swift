@@ -94,6 +94,28 @@
             // No state to reset in the macOS stub.
         }
 
+        // MARK: - Public Reset/Debug Parity Methods
+
+        /// Clears attestation completion flag (no-op on macOS).
+        func clearAttestationFlag() {
+            // No persistent attestation flag on macOS stub.
+            print("[AppAttestationManager macOS] clearAttestationFlag() no-op")
+        }
+
+        /// Completely resets App Attestation state (no-op on macOS).
+        func forceReset() {
+            // Nothing to reset in the macOS stub.
+            print("[AppAttestationManager macOS] forceReset() no-op")
+        }
+
+        /// Diagnoses current (stub) App Attestation state on macOS.
+        func diagnoseState() {
+            print("[AppAttestationManager macOS] Diagnosis:")
+            print("  -> Service supported: false (no App Attest on macOS)")
+            print("  -> Key stored: false")
+            print("  -> Attestation completed flag: false")
+        }
+
         // MARK: - Internal Helpers
 
         private func sha256String(_ data: Data) -> String {

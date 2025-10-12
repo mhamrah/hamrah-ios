@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import Network
 import OSLog
@@ -8,6 +9,7 @@ import SwiftData
 /// Coordinates outbound/inbound sync, archive prefetch, and cache management.
 /// Triggers: app launch/foreground, NWPathMonitor, BGProcessingTask, pull-to-refresh.
 final class SyncEngine: ObservableObject {
+    let objectWillChange = ObservableObjectPublisher()
 
     // MARK: - Dependencies
 

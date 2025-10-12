@@ -3,8 +3,10 @@
     import DeviceCheck
     import CommonCrypto
     import UIKit
+    import Combine
 
     class AppAttestationManager: ObservableObject {
+        let objectWillChange = ObservableObjectPublisher()
         static let shared = AppAttestationManager()
 
         private let service = DCAppAttestService.shared
@@ -221,8 +223,7 @@
 
             let body = [
                 "platform": "ios",
-                "bundleId": Bundle.main.bundleIdentifier ?? "app.hamrah.ios",
-                "purpose": "attestation",
+                "bundle_id": Bundle.main.bundleIdentifier ?? "app.hamrah.ios",
             ]
             request.httpBody = try JSONEncoder().encode(body)
 
@@ -261,11 +262,10 @@
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
             let body = [
-                "attestation": attestation.base64EncodedString(),
-                "keyId": keyId,
-                "challengeId": challengeId,
-                "bundleId": Bundle.main.bundleIdentifier ?? "app.hamrah.ios",
-                "platform": "ios",
+                "attestation_object": attestation.base64EncodedString(),
+                "key_id": keyId,
+                "challenge_id": challengeId,
+                "bundle_id": Bundle.main.bundleIdentifier ?? "app.hamrah.ios",
             ]
             request.httpBody = try JSONEncoder().encode(body)
 
@@ -304,7 +304,7 @@
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-            let body = ["keyId": keyId]
+            let body = ["key_id": keyId]
             guard let httpBody = try? JSONEncoder().encode(body) else {
                 return false
             }
@@ -388,6 +388,13 @@
         let challenge: String?
         let challengeId: String
         let error: String?
+
+        enum CodingKeys: String, CodingKey {
+            case success
+            case challenge
+            case challengeId = "challenge_id"
+            case error
+        }
     }
 
     struct AttestationVerificationResponse: Codable {

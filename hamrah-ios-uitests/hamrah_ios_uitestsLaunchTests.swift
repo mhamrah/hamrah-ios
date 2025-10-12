@@ -1,13 +1,13 @@
 //
-//  hamrahIOSUITestsLaunchTests.swift
-//  hamrahIOSUITests
+//  hamrah_ios_uitestsLaunchTests.swift
+//  hamrah-ios-uitests
 //
-//  Created by Mike Hamrah on 8/10/25.
+//  Created by Mike Hamrah on 10/12/25.
 //
 
 import XCTest
 
-final class hamrahIOSUITestsLaunchTests: XCTestCase {
+final class hamrah_ios_uitestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

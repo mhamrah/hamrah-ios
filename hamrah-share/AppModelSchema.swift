@@ -16,7 +16,6 @@ enum AppModelSchema {
     /// Canonical SwiftData schema for all models.
     /// Keep this list ordered and consistent to avoid migration instability.
     static let schema: Schema = Schema([
-        Item.self,
         LinkEntity.self,
         TagEntity.self,
         SyncCursor.self,

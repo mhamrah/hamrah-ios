@@ -5,7 +5,9 @@
 //  Biometric authentication prompt view for app launch
 //
 
+import LocalAuthentication
 import SwiftUI
+
 #if os(macOS)
     import AppKit
 #endif

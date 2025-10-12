@@ -1,4 +1,5 @@
 import AuthenticationServices
+import LocalAuthentication
 import SwiftData
 import SwiftUI
 
@@ -27,6 +28,7 @@ struct SettingsView: View {
     @State private var showAddPasskey = false
     @State private var showBiometricSettings = false
     @State private var showResetAttestationConfirm = false
+    @State private var showLogoutConfirm = false
 
     // Editable preferences
     @State private var defaultModel: String = "gpt-4o-mini"
@@ -56,7 +58,6 @@ struct SettingsView: View {
             modelsSection
             syncEngineSection
             advancedSection
-            logoutSection
         }
         .navigationTitle("Settings")
         .task {
@@ -93,7 +94,18 @@ struct SettingsView: View {
                 infoMessage = "App Attestation state has been reset. Please restart the app."
             }
         } message: {
-            Text("This will delete the current App Attestation key and force the app to create a new one on next launch. This may help resolve authentication issues.")
+            Text(
+                "This will delete the current App Attestation key and force the app to create a new one on next launch. This may help resolve authentication issues."
+            )
+        }
+        .alert("Sign Out?", isPresented: $showLogoutConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Sign Out", role: .destructive) {
+                authManager.logout()
+                infoMessage = "Signed out."
+            }
+        } message: {
+            Text("You will be signed out of this device.")
         }
     }
 
@@ -107,6 +119,13 @@ struct SettingsView: View {
                 LabeledContent("Name", value: user.name ?? "Not provided")
                 LabeledContent("Auth Method", value: user.authMethod.capitalized)
                 LabeledContent("Member Since", value: formatDate(user.createdAt ?? ""))
+
+                // Sign Out action moved here for visibility
+                Button(role: .destructive) {
+                    showLogoutConfirm = true
+                } label: {
+                    Text("Sign Out")
+                }
             } else {
                 Text("Not logged in.")
             }
@@ -427,14 +446,7 @@ struct SettingsView: View {
         }
     }
 
-    private var logoutSection: some View {
-        Section {
-            Button("Sign Out") {
-                authManager.logout()
-            }
-            .foregroundColor(.red)
-        }
-    }
+    // Deprecated: logoutSection removed; Sign Out moved to Account Information section
 
     // MARK: - Local Store Helpers
 

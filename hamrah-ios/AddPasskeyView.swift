@@ -13,6 +13,7 @@ struct AddPasskeyView: View {
     @EnvironmentObject var authManager: NativeAuthManager
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var showErrorAlert = false
     let onPasskeyAdded: () -> Void
 
     var body: some View {
@@ -87,9 +88,10 @@ struct AddPasskeyView: View {
                 .navigationTitle("Add Passkey")
                 .frame(minWidth: 420, minHeight: 520)
             #endif
-            .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            .alert("Error", isPresented: $showErrorAlert) {
                 Button("OK") {
                     errorMessage = nil
+                    showErrorAlert = false
                 }
             } message: {
                 Text(errorMessage ?? "")
@@ -106,11 +108,13 @@ struct AddPasskeyView: View {
 
         guard let user = authManager.currentUser else {
             errorMessage = "No user found. Please sign in again."
+            showErrorAlert = true
             return
         }
 
         guard let accessToken = authManager.accessToken else {
             errorMessage = "No access token found. Please sign in again."
+            showErrorAlert = true
             return
         }
 
@@ -129,6 +133,7 @@ struct AddPasskeyView: View {
                 await MainActor.run {
                     self.errorMessage = "Failed to add passkey: \(error.localizedDescription)"
                     self.isLoading = false
+                    self.showErrorAlert = true
                 }
             }
         }
@@ -145,7 +150,7 @@ struct AddPasskeyView: View {
                 userInfo: [NSLocalizedDescriptionKey: "No registration options received"])
         }
 
-        let challengeId = options.challengeId
+        let challengeId = beginOptions.challengeId
 
         // Step 2: Perform platform registration
         let attestation = try await performPlatformRegistration(options: options)
@@ -160,9 +165,9 @@ struct AddPasskeyView: View {
         -> WebAuthnBeginRegistrationResponse
     {
         let body = [
-            "userId": authManager.currentUser?.id ?? "",
+            "user_id": authManager.currentUser?.id ?? "",
             "email": email,
-            "displayName": authManager.currentUser?.name ?? email,
+            "display_name": authManager.currentUser?.name ?? email,
             "label": "iOS Device",
         ]
 
@@ -178,8 +183,8 @@ struct AddPasskeyView: View {
     private func performPlatformRegistration(options: PublicKeyCredentialCreationOptions)
         async throws -> ASAuthorizationPlatformPublicKeyCredentialRegistration
     {
-        let challenge = Data(base64Encoded: options.challenge) ?? Data()
-        let userID = Data(base64Encoded: options.user.id) ?? Data()
+        let challenge = Data(base64URLEncoded: options.challenge) ?? Data()
+        let userID = Data(base64URLEncoded: options.user.id) ?? Data()
 
         let request = ASAuthorizationPlatformPublicKeyCredentialProvider(
             relyingPartyIdentifier: options.rp.id
@@ -206,20 +211,20 @@ struct AddPasskeyView: View {
         // Create the response object matching SimpleWebAuthn's RegistrationResponseJSON format
         let registrationResponseData =
             [
-                "id": attestation.credentialID.base64EncodedString(),
-                "rawId": attestation.credentialID.base64EncodedString(),
+                "id": attestation.credentialID.base64URLEncodedString(),
+                "rawId": attestation.credentialID.base64URLEncodedString(),
                 "type": "public-key",
                 "response": [
-                    "attestationObject": attestation.rawAttestationObject?.base64EncodedString()
+                    "attestationObject": attestation.rawAttestationObject?.base64URLEncodedString()
                         ?? "",
-                    "clientDataJSON": attestation.rawClientDataJSON.base64EncodedString(),
+                    "clientDataJSON": attestation.rawClientDataJSON.base64URLEncodedString(),
                 ],
             ] as [String: Any]
 
         let body =
             [
                 "response": registrationResponseData,
-                "challengeId": challengeId,
+                "challenge_id": challengeId,
                 // Optional friendly label for server-side storage
                 "label": "iOS Device",
             ] as [String: Any]
@@ -239,7 +244,15 @@ struct AddPasskeyView: View {
 struct WebAuthnBeginRegistrationResponse: Codable {
     let success: Bool
     let options: PublicKeyCredentialCreationOptions?
+    let challengeId: String
     let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case options
+        case challengeId = "challenge_id"
+        case error
+    }
 }
 
 struct PublicKeyCredentialCreationOptions: Codable {
@@ -279,6 +292,29 @@ struct PublicKeyCredentialDescriptorForCreation: Codable {
     let type: String
     let id: String
     let transports: [String]?
+}
+
+// MARK: - Base64URL helpers
+extension Data {
+    init?(base64URLEncoded string: String) {
+        var base64 =
+            string
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let padding = 4 - (base64.count % 4)
+        if padding < 4 {
+            base64.append(String(repeating: "=", count: padding))
+        }
+        guard let data = Data(base64Encoded: base64) else { return nil }
+        self = data
+    }
+
+    func base64URLEncodedString() -> String {
+        return self.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
 }
 
 // MARK: - Passkey Registration Delegate

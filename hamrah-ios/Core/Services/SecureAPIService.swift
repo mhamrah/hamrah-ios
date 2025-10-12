@@ -1,7 +1,12 @@
+import Combine
 import Foundation
-import DeviceCheck
+
+#if os(iOS)
+    import DeviceCheck
+#endif
 
 class SecureAPIService: ObservableObject {
+    let objectWillChange = ObservableObjectPublisher()
     static let shared = SecureAPIService()
 
     private let attestationManager = AppAttestationManager.shared
@@ -28,6 +33,13 @@ class SecureAPIService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Attach tracing headers
+        let traceId = UUID().uuidString.lowercased()
+        request.setValue(traceId, forHTTPHeaderField: "X-Trace-Id")
+        if let token = accessToken, let userId = decodeJWTSubject(from: token) {
+            request.setValue(userId, forHTTPHeaderField: "X-User-Id")
+        }
 
         // Add authorization if provided
         if let token = accessToken {
@@ -109,19 +121,21 @@ class SecureAPIService: ObservableObject {
         } catch {
             print("⚠️ Failed to initialize App Attestation: \(error)")
 
-            // If we get a DCError code 2 (invalid key), try a force reset and retry once
-            if let dcError = error as? DCError, dcError.code.rawValue == 2 {
-                print("🔄 Detected DCError code 2 - attempting force reset and retry...")
-                attestationManager.forceReset()
+            #if os(iOS)
+                // If we get a DCError code 2 (invalid key), try a force reset and retry once
+                if let dcError = error as? DCError, dcError.code.rawValue == 2 {
+                    print("🔄 Detected DCError code 2 - attempting force reset and retry...")
+                    attestationManager.forceReset()
 
-                do {
-                    try await attestationManager.initializeAttestation(accessToken: accessToken)
-                    print("✅ App Attestation initialized successfully after reset")
-                } catch {
-                    print("⚠️ App Attestation still failing after reset: \(error)")
-                    print("💡 Continuing with fallback headers - app will still work")
+                    do {
+                        try await attestationManager.initializeAttestation(accessToken: accessToken)
+                        print("✅ App Attestation initialized successfully after reset")
+                    } catch {
+                        print("⚠️ App Attestation still failing after reset: \(error)")
+                        print("💡 Continuing with fallback headers - app will still work")
+                    }
                 }
-            }
+            #endif
             // Continue without attestation - app should still work with fallback headers
         }
     }
@@ -241,6 +255,13 @@ class SecureAPIService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.HEAD.rawValue
 
+        // Attach tracing headers
+        let traceId = UUID().uuidString.lowercased()
+        request.setValue(traceId, forHTTPHeaderField: "X-Trace-Id")
+        if let token = accessToken, let userId = decodeJWTSubject(from: token) {
+            request.setValue(userId, forHTTPHeaderField: "X-User-Id")
+        }
+
         // Authorization (optional)
         if let token = accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -305,6 +326,13 @@ class SecureAPIService: ObservableObject {
         let url = URL(string: "\(targetBaseURL)\(endpoint)")!
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.GET.rawValue
+
+        // Attach tracing headers
+        let traceId = UUID().uuidString.lowercased()
+        request.setValue(traceId, forHTTPHeaderField: "X-Trace-Id")
+        if let token = accessToken, let userId = decodeJWTSubject(from: token) {
+            request.setValue(userId, forHTTPHeaderField: "X-User-Id")
+        }
 
         // Authorization (optional)
         if let token = accessToken {
@@ -374,6 +402,27 @@ class SecureAPIService: ObservableObject {
         challengeString += ":\(Date().timeIntervalSince1970)"
 
         return challengeString.data(using: .utf8) ?? Data()
+    }
+
+    // Extracts `sub` (user id) from a JWT access token (base64url JSON payload).
+    private func decodeJWTSubject(from token: String) -> String? {
+        let parts = token.split(separator: ".")
+        guard parts.count >= 2,
+            let payloadData = base64URLDecode(String(parts[1])),
+            let json = try? JSONSerialization.jsonObject(with: payloadData) as? [String: Any]
+        else { return nil }
+        return json["sub"] as? String
+    }
+
+    // Base64URL decoder used for JWT payloads.
+    private func base64URLDecode(_ input: String) -> Data? {
+        var base64 = input.replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let padding = 4 - (base64.count % 4)
+        if padding < 4 {
+            base64.append(String(repeating: "=", count: padding))
+        }
+        return Data(base64Encoded: base64)
     }
 }
 

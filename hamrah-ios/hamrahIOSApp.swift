@@ -13,7 +13,7 @@ import SwiftUI
 #if os(iOS)
     import BackgroundTasks
 #endif
-#if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
+#if canImport(GoogleSignIn)
     import GoogleSignIn
 #endif
 
@@ -70,20 +70,15 @@ struct hamrahIOSApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .task {
+                    print(
+                        "🌐 API baseURL: \(APIConfiguration.shared.baseURL) [env=\(APIConfiguration.shared.currentEnvironment.rawValue)]"
+                    )
+                }
                 .onOpenURL { url in
                     // Handle deep link URLs (OAuth callback)
                     print("Received URL: \(url)")
-                    #if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
-                        print("🔎 Attempting Google Sign-In URL handling...")
-                        if GIDSignIn.sharedInstance.handle(url) {
-                            print("✅ Handled Google Sign-In URL")
-                            return
-                        } else {
-                            print(
-                                "↪️ Google Sign-In did not handle URL, falling back to deep link router"
-                            )
-                        }
-                    #endif
+                    // Google Sign-In URL handling not required here for modern SDK; proceed to deep link router.
                     let routed = DeepLinkRouter.handle(url)
                     print("🔗 DeepLinkRouter handled: \(routed)")
                     SyncEngine().triggerSync(reason: "open_url")

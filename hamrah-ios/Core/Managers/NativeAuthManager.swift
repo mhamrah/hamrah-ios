@@ -7,6 +7,7 @@
 //
 
 import AuthenticationServices
+import Combine
 import Foundation
 import SwiftUI
 
@@ -17,7 +18,7 @@ import SwiftUI
     import AppKit
 #endif
 
-#if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn) && (os(iOS) || targetEnvironment(macCatalyst))
+#if canImport(GoogleSignIn) && (os(iOS) || targetEnvironment(macCatalyst))
     import GoogleSignIn
 #else
     // Google Sign-In SDK unavailable: build stubs so the rest of the app compiles.
@@ -135,12 +136,47 @@ class NativeAuthManager: NSObject, ObservableObject {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            success = try container.decode(Bool.self, forKey: .success)
-            user = try container.decodeIfPresent(HamrahUser.self, forKey: .user)
-            accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken)
-            refreshToken = try container.decodeIfPresent(String.self, forKey: .refreshToken)
-            expiresIn = try container.decodeIfPresent(Int.self, forKey: .expiresIn)
-            error = try container.decodeIfPresent(String.self, forKey: .error)
+
+            // Decode tokens and optional fields first
+            let accessTokenDecoded = try container.decodeIfPresent(
+                String.self, forKey: .accessToken)
+            let refreshTokenDecoded = try container.decodeIfPresent(
+                String.self, forKey: .refreshToken)
+            let expiresInDecoded = try container.decodeIfPresent(Int.self, forKey: .expiresIn)
+            let decodedUser = try container.decodeIfPresent(HamrahUser.self, forKey: .user)
+            let errorDecoded = try container.decodeIfPresent(String.self, forKey: .error)
+
+            // Derive user from JWT claims if not provided
+            var userDerived = decodedUser
+            if userDerived == nil, let token = accessTokenDecoded,
+                let claims = AuthResponse.decodeJWTClaims(token)
+            {
+                let email = claims["email"] as? String
+                let id = (claims["sub"] as? String) ?? UUID().uuidString
+                let name = claims["name"] as? String
+                if let email = email {
+                    userDerived = HamrahUser(
+                        id: id,
+                        email: email,
+                        name: name,
+                        picture: nil,
+                        authMethod: "google",
+                        createdAt: nil
+                    )
+                }
+            }
+
+            // Default success to true if we received tokens, otherwise decode explicit success
+            let decodedSuccess = try container.decodeIfPresent(Bool.self, forKey: .success)
+            let successDerived = decodedSuccess ?? (accessTokenDecoded != nil)
+
+            // Assign
+            success = successDerived
+            user = userDerived
+            accessToken = accessTokenDecoded
+            refreshToken = refreshTokenDecoded
+            expiresIn = expiresInDecoded
+            error = errorDecoded
         }
 
         func encode(to encoder: Encoder) throws {
@@ -152,16 +188,40 @@ class NativeAuthManager: NSObject, ObservableObject {
             try container.encodeIfPresent(expiresIn, forKey: .expiresIn)
             try container.encodeIfPresent(error, forKey: .error)
         }
+
+        // Decode JWT payload claims (Base64URL) into a dictionary
+        private static func decodeJWTClaims(_ jwt: String) -> [String: Any]? {
+            let segments = jwt.split(separator: ".")
+            guard segments.count >= 2 else { return nil }
+            let payload = String(segments[1])
+            var base64 =
+                payload
+                .replacingOccurrences(of: "-", with: "+")
+                .replacingOccurrences(of: "_", with: "/")
+            let padding = 4 - (base64.count % 4)
+            if padding < 4 {
+                base64.append(String(repeating: "=", count: padding))
+            }
+            guard let data = Data(base64Encoded: base64) else { return nil }
+            do {
+                let obj = try JSONSerialization.jsonObject(with: data, options: [])
+                return obj as? [String: Any]
+            } catch {
+                return nil
+            }
+        }
     }
 
     struct WebAuthnBeginResponse: Codable {
         let success: Bool
         let options: PublicKeyCredentialRequestOptions?
+        let challengeId: String
         let error: String?
 
         enum CodingKeys: String, CodingKey {
             case success
             case options
+            case challengeId = "challenge_id"
             case error
         }
     }
@@ -233,116 +293,95 @@ class NativeAuthManager: NSObject, ObservableObject {
     // MARK: - Google Sign-In
 
     private func configureGoogleSignIn() {
-        #if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
-            // Prefer GoogleService-Info.plist, but fall back to Info.plist (GIDClientID)
-            var clientId: String? = nil
-            if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
-                let plist = NSDictionary(contentsOfFile: path),
-                let id = plist["CLIENT_ID"] as? String,
-                !id.isEmpty
-            {
-                clientId = id
-                print("✅ Google Sign-In configured from GoogleService-Info.plist")
-            } else if let id = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
-                !id.isEmpty
-            {
-                clientId = id
-                print("✅ Google Sign-In configured from Info.plist GIDClientID")
-            } else {
-                print("⚠️ GoogleService-Info.plist not found and GIDClientID missing in Info.plist")
-                return
-            }
-            if let clientId = clientId {
-                GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientId)
-                print("✅ Google Sign-In configured (HAS_GOOGLE_SIGNIN)")
-            }
-        #else
-            // Build without Google Sign-In SDK or flag: operate in degraded mode
-            print(
-                "ℹ️ Google Sign-In unavailable (missing SDK or HAS_GOOGLE_SIGNIN not set). Button will be hidden / disabled."
-            )
-        #endif
+        // Prefer GoogleService-Info.plist, but fall back to Info.plist (GIDClientID)
+        var clientId: String? = nil
+        if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+            let plist = NSDictionary(contentsOfFile: path),
+            let id = plist["CLIENT_ID"] as? String,
+            !id.isEmpty
+        {
+            clientId = id
+            print("✅ Google Sign-In configured from GoogleService-Info.plist")
+        } else if let id = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
+            !id.isEmpty
+        {
+            clientId = id
+            print("✅ Google Sign-In configured from Info.plist GIDClientID")
+        } else {
+            print("⚠️ GoogleService-Info.plist not found and GIDClientID missing in Info.plist")
+        }
+        if let clientId = clientId {
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientId)
+            print("✅ Google Sign-In configured")
+        }
     }
 
     func signInWithGoogle() async {
-        #if HAS_GOOGLE_SIGNIN && canImport(GoogleSignIn)
-            isLoading = true
-            errorMessage = nil
-            do {
-                print("🔍 Starting Google Sign-In...")
-                #if os(iOS) || targetEnvironment(macCatalyst)
-                    // Ensure app is active before presenting Google Sign-In
-                    if UIApplication.shared.applicationState != .active {
-                        print("⏳ Waiting for app to become active before starting Google Sign-In")
-                        while UIApplication.shared.applicationState != .active {
-                            try await Task.sleep(nanoseconds: 100_000_000)
-                        }
+        isLoading = true
+        errorMessage = nil
+        do {
+            print("🔍 Starting Google Sign-In...")
+            #if os(iOS) || targetEnvironment(macCatalyst)
+                // Ensure app is active before presenting Google Sign-In
+                if UIApplication.shared.applicationState != .active {
+                    print("⏳ Waiting for app to become active before starting Google Sign-In")
+                    while UIApplication.shared.applicationState != .active {
+                        try await Task.sleep(nanoseconds: 100_000_000)
                     }
-                    guard
-                        let windowScene = UIApplication.shared.connectedScenes.first
-                            as? UIWindowScene,
-                        let window = windowScene.windows.first(where: { $0.isKeyWindow }),
-                        var presentingViewController = window.rootViewController
-                    else {
-                        throw NSError(
-                            domain: "GoogleSignIn",
-                            code: -1,
-                            userInfo: [NSLocalizedDescriptionKey: "No presenting view controller"]
-                        )
-                    }
-                    // Traverse to the top-most presented view controller
-                    while let presented = presentingViewController.presentedViewController {
-                        presentingViewController = presented
-                    }
-                    let result = try await GIDSignIn.sharedInstance.signIn(
-                        withPresenting: presentingViewController)
-                    let user = result.user
-                    print("🔍 Google Sign-In result received:")
-                    print("  User ID: \(user.userID ?? "nil")")
-                    print("  Email: \(user.profile?.email ?? "nil")")
-                    print("  Name: \(user.profile?.name ?? "nil")")
-                    guard let idToken = user.idToken?.tokenString else {
-                        throw NSError(
-                            domain: "GoogleSignIn",
-                            code: -1,
-                            userInfo: [NSLocalizedDescriptionKey: "No ID token"]
-                        )
-                    }
-                    print("🔍 Google ID token received, length: \(idToken.count)")
-                    print("🔍 Sending authentication request to backend...")
-                    try await authenticateWithBackend(
-                        provider: "google",
-                        credential: idToken,
-                        additionalData: [
-                            "email": user.profile?.email ?? "",
-                            "name": user.profile?.name ?? "",
-                            "picture": user.profile?.imageURL(withDimension: 200)?.absoluteString
-                                ?? "",
-                        ]
-                    )
-                    print("🔍 Google backend authentication completed successfully")
-                #else
+                }
+                guard
+                    let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                    let window = windowScene.windows.first(where: { $0.isKeyWindow }),
+                    var presentingViewController = window.rootViewController
+                else {
                     throw NSError(
                         domain: "GoogleSignIn",
-                        code: -2,
-                        userInfo: [
-                            NSLocalizedDescriptionKey: "Unsupported platform for Google Sign-In"
-                        ]
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "No presenting view controller"]
                     )
-                #endif
-            } catch {
-                errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
-                print("❌ Google Sign-In error: \(error)")
-            }
-            isLoading = false
-        #else
-            // Fallback path when Google Sign-In is not compiled in
-            print("ℹ️ signInWithGoogle() called but Google Sign-In is disabled in this build.")
-            await MainActor.run {
-                self.errorMessage = "Google Sign-In not available in this build."
-                self.isLoading = false
-            }
-        #endif
+                }
+                // Traverse to the top-most presented view controller
+                while let presented = presentingViewController.presentedViewController {
+                    presentingViewController = presented
+                }
+                let result = try await GIDSignIn.sharedInstance.signIn(
+                    withPresenting: presentingViewController)
+                let user = result.user
+                print("🔍 Google Sign-In result received:")
+                print("  User ID: \(user.userID ?? "nil")")
+                print("  Email: \(user.profile?.email ?? "nil")")
+                print("  Name: \(user.profile?.name ?? "nil")")
+                guard let idToken = user.idToken?.tokenString else {
+                    throw NSError(
+                        domain: "GoogleSignIn",
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "No ID token"]
+                    )
+                }
+                print("🔍 Google ID token received, length: \(idToken.count)")
+                print("🔍 Sending authentication request to backend...")
+                try await authenticateWithBackend(
+                    provider: "google",
+                    credential: idToken,
+                    additionalData: [
+                        "email": user.profile?.email ?? "",
+                        "name": user.profile?.name ?? "",
+                        "picture": user.profile?.imageURL(withDimension: 200)?.absoluteString ?? "",
+                    ]
+                )
+                print("🔍 Google backend authentication completed successfully")
+            #else
+                throw NSError(
+                    domain: "GoogleSignIn",
+                    code: -2,
+                    userInfo: [NSLocalizedDescriptionKey: "Unsupported platform for Google Sign-In"]
+                )
+            #endif
+        } catch {
+            errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
+            print("❌ Google Sign-In error: \(error)")
+        }
+        isLoading = false
     }
 
     // MARK: - Passkey Authentication
@@ -410,7 +449,7 @@ class NativeAuthManager: NSObject, ObservableObject {
                     userInfo: [NSLocalizedDescriptionKey: "No authentication options received"])
             }
 
-            let challengeId = options.challengeId
+            let challengeId = beginOptions.challengeId
 
             // Step 2: Perform platform authentication
             let assertion = try await performPlatformAuthentication(options: options)
@@ -483,7 +522,7 @@ class NativeAuthManager: NSObject, ObservableObject {
         let body =
             [
                 "response": authResponseData,
-                "challengeId": challengeId,
+                "challenge_id": challengeId,
                 "mode": "discoverable-explicit",
             ] as [String: Any]
 
@@ -595,12 +634,33 @@ class NativeAuthManager: NSObject, ObservableObject {
                 ])
         }
 
-        if authResponse.success, let user = authResponse.user, let token = authResponse.accessToken
-        {
+        if let token = authResponse.accessToken {
             await MainActor.run {
-                self.currentUser = user
                 self.accessToken = token
                 self.isAuthenticated = true
+
+                if let user = authResponse.user {
+                    self.currentUser = user
+                    // Store the user's email for future automatic login
+                    self.setLastUsedEmail(user.email)
+                } else {
+                    // Fallback: derive a minimal user from the data we have
+                    let email = additionalData["email"] ?? self.currentUser?.email ?? ""
+                    let name = additionalData["name"]
+                    let picture = additionalData["picture"]
+                    let id = self.currentUser?.id ?? UUID().uuidString
+                    self.currentUser = HamrahUser(
+                        id: id,
+                        email: email,
+                        name: name,
+                        picture: picture,
+                        authMethod: provider,
+                        createdAt: nil
+                    )
+                    if !email.isEmpty {
+                        self.setLastUsedEmail(email)
+                    }
+                }
             }
 
             // Store refresh token if provided
@@ -614,9 +674,6 @@ class NativeAuthManager: NSObject, ObservableObject {
                 _ = KeychainManager.shared.store(expiresAt, for: "hamrah_token_expires_at")
             }
 
-            // Store the user's email for future automatic login
-            self.setLastUsedEmail(user.email)
-
             self.storeAuthState()
 
             // Initialize App Attestation (blocks on first install, skips if already initialized)
@@ -624,7 +681,8 @@ class NativeAuthManager: NSObject, ObservableObject {
                 await secureAPI.initializeAttestation(accessToken: token)
             }
 
-            print("✅ Backend authentication successful - User: \(user.email)")
+            let emailLog = self.currentUser?.email ?? "(unknown)"
+            print("✅ Backend authentication successful - Token accepted for \(emailLog)")
         } else {
             print("❌ Auth Response Validation Failed:")
             print("  Success: \(authResponse.success)")

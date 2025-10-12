@@ -40,6 +40,7 @@ class APIConfiguration {
     private let environmentKey = "APIEnvironment"
     private let customApiBaseURLKey = "CustomAPIBaseURL"
     private let legacyCustomBaseURLKey = "CustomBaseURL"
+    private let simulatorLocalhostKey = "SimulatorLocalhostEnabled"
 
     // MARK: - Public properties
     var currentEnvironment: Environment {
@@ -64,6 +65,13 @@ class APIConfiguration {
         }
     }
 
+    /// Toggle: when running on Simulator, force localhost:8080 unless disabled via this switch.
+    var simulatorLocalhostEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(simulatorLocalhostEnabled, forKey: simulatorLocalhostKey)
+        }
+    }
+
     // MARK: - Initializer
     init() {
         // Load environment or default to production.
@@ -79,6 +87,18 @@ class APIConfiguration {
         let defaults = UserDefaults.standard
         let legacy = defaults.string(forKey: legacyCustomBaseURLKey) ?? ""
         self.customApiBaseURL = defaults.string(forKey: customApiBaseURLKey) ?? legacy
+
+        // Initialize simulator localhost toggle
+        #if targetEnvironment(simulator)
+            if UserDefaults.standard.object(forKey: simulatorLocalhostKey) != nil {
+                self.simulatorLocalhostEnabled = UserDefaults.standard.bool(
+                    forKey: simulatorLocalhostKey)
+            } else {
+                self.simulatorLocalhostEnabled = true
+            }
+        #else
+            self.simulatorLocalhostEnabled = false
+        #endif
     }
 
     // MARK: - Convenience for tests
@@ -92,7 +112,15 @@ class APIConfiguration {
     var baseURL: String {
         switch currentEnvironment {
         case .production, .development:
-            return currentEnvironment.baseURL
+            #if targetEnvironment(simulator)
+                if simulatorLocalhostEnabled && customApiBaseURL.isEmpty {
+                    return "http://localhost:8080"
+                } else {
+                    return currentEnvironment.baseURL
+                }
+            #else
+                return currentEnvironment.baseURL
+            #endif
         case .custom:
             let url = customApiBaseURL
             if url.isEmpty { return Environment.production.baseURL }
